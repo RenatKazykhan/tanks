@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Танки</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="mainMenu">
+        <h1>ТАНКОВАЯ БИТВА</h1>
+        <div id="points">💰 Очки: 0</div>
+        
+        <div class="stats">
+            <h2>Улучшения характеристик танка</h2>
+            
+            <div class="stats-columns">
+                <div class="stat-item">
+                    <span class="stat-name">❤️ Макс. здоровье</span>
+                    <span class="stat-value" id="healthValue">100</span>
+                    <button class="upgrade-btn" onclick="upgrade('health')">Улучшить (50)</button>
+                </div>
+            
+                <div class="stat-item">
+                    <span class="stat-name">⚡ Скорость</span>
+                    <span class="stat-value" id="speedValue">80</span>
+                    <button class="upgrade-btn" onclick="upgrade('speed')">Улучшить (30)</button>
+                </div>
+                
+                <div class="stat-item">
+                    <span class="stat-name">🔫 Урон</span>
+                    <span class="stat-value" id="damageValue">20</span>
+                    <button class="upgrade-btn" onclick="upgrade('damage')">Улучшить (40)</button>
+                </div>
+                
+                <div class="stat-item">
+                    <span class="stat-name">🚀 Скорострельность</span>
+                    <span class="stat-value" id="fireRateValue">500ms</span>
+                    <button class="upgrade-btn" onclick="upgrade('fireRate')">Улучшить (60)</button>
+                </div>
+
+                <div class="stat-item">
+                    <span class="stat-name">⚡ Скорость снаряда</span>
+                    <span class="stat-value" id="bulletSpeedValue">400</span>
+                    <button class="upgrade-btn" onclick="upgrade('bulletSpeed')">Улучшить (60)</button>
+                </div>
+
+                <div class="stat-item">
+                    <span class="stat-name">⚙️ Регенерация</span>
+                    <span class="stat-value" id="regenValue">0</span>
+                    <button class="upgrade-btn" onclick="upgrade('regen')">Улучшить (60)</button>
+                </div>
+
+                <div class="stat-item">
+                    <span class="stat-name">🛡️ Броня</span>
+                    <span class="stat-value" id="armorValue">0</span>
+                    <button class="upgrade-btn" onclick="upgrade('armor')">Улучшить (70)</button>
+                </div>
+
+                <div class="stat-item">
+                    <span class="stat-name">🩸 Вампиризм</span>
+                    <span class="stat-value" id="lifeStealValue">5%</span>
+                    <button class="upgrade-btn" onclick="upgrade('lifeSteal')">Улучшить (60)</button>
+                </div>
+            </div>
+        </div>
+        
+        <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn">Сбросить</button>
+        <button id="startBtn" onclick="startGame()">НАЧАТЬ ИГРУ</button>
+    </div>
+
+    <div id="gameContainer">
+        <div id="gameInfo">
+            <div>
+                <div id="score">
+                    Очки: <span id="scoreValue">0</span>
+                </div>
+                <div id="score">
+                    Рекорд: <span id="recordScoreValue">0</span>
+                </div>
+            </div>
+            
+            <div> Волна: <span id="waveValue">0</span></div>
+
+            <div>
+                <div>Здоровье: <span id="currentHealth">100</span></div>
+                <div>Макс. здоровье: <span id="MaxHealth">100</span></div>
+            </div>
+            <button id="pauseBtn" onclick="togglePause()">Пауза</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        <canvas id="minimap"></canvas>
+
+        <div id="controls">
+            Управление: WASD - движение, Пробел - стрельба, Мышь - поворот башни
+        </div>
+        <div id="gameOver">
+            <div>Игра окончена!</div>
+            <div>Ваш счет: <span id="finalScore">0</span></div>
+            <div id="restartBtn">
+                <button onclick="resetGame()">Играть снова</button>
+                <button onclick="backToMenu()" class="menu-btn">В главное меню</button>
+            </div>
+
+            <table class="stats-table">
+                <tr>
+                    <th colspan="2">Статистика игры</th>
+                </tr>
+                <tr>
+                    <td>🎯 Танков уничтожено:</td>
+                    <td><span id="kills">0</span></td>
+                </tr>
+                <tr>
+                    <td>💥 Общий урон нанесён:</td>
+                    <td><span id="damageDone">0</span></td>
+                </tr>
+                <tr>
+                    <td>🔫 Урон от снарядов:</td>
+                    <td><span id="damageByBullet">0</span></td>
+                </tr>
+                <tr>
+                    <td>💥 Урон от взрыва:</td>
+                    <td><span id="damageByExplode">0</span></td>
+                </tr>
+                <tr>
+                    <td>⚡ Урон от цепной молнии:</td>
+                    <td><span id="damageByLightning">0</span></td>
+                </tr>
+                <tr>
+                    <td>📊 Выстрелов сделано:</td>
+                    <td><span id="shootsFired">0</span></td>
+                </tr>
+                <tr>
+                    <td>🎯 Попаданий:</td>
+                    <td><span id="hits">0</span></td>
+                </tr>
+                <tr>
+                    <td>🎯 Точность:</td>
+                    <td><span id="aim">0</span>%</td>
+                </tr>
+                <tr>
+                    <td>💔 Получено урона:</td>
+                    <td><span id="takeDamages">0</span></td>
+                </tr>
+                <tr>
+                    <td>⚡ Бонусов собрано:</td>
+                    <td><span id="bonusesCollect">0</span></td>
+                </tr>
+                <tr>
+                    <td>💚 Всего восстановлено HP:</td>
+                    <td><span id="healthRestored">0</span></td>
+                </tr>
+                <tr>
+                    <td>🩸 HP от вампиризма:</td>
+                    <td><span id="healthRestoredLifeSteal">0</span></td>
+                </tr>
+                <tr>
+                    <td>♻️ HP от пассивной регенерации:</td>
+                    <td><span id="healtRestoredRegen">0</span></td>
+                </tr>
+                <tr>
+                    <td>♻️ HP от способности регенерации:</td>
+                    <td><span id="healtRestoredActiveRegen">0</span></td>
+                </tr>
+                <tr>
+                    <td>🛡️ Блокировано броней:</td>
+                    <td><span id="blockedByArmor">0</span></td>
+                </tr>
+                <tr>
+                    <td>🔰 Ослаблено щитом:</td>
+                    <td><span id="blockedByShield">0</span></td>
+                </tr>
+            </table>
+        </div>
+        <div id="victory">
+            <div class="victory-title">🏆 ПОБЕДА! 🏆</div>
+            <div class="victory-subtitle">Поздравляем! Вы прошли все волны!</div>
+            <div>Ваш счет: <span id="victoryScore">0</span></div>
+            <button onclick="resetGame()" class="victory-button">Играть снова</button>
+            <table class="stats-table">
+                <!-- Здесь можно продублировать статистику из gameOver -->
+            </table>
+        </div>
+        <div id="pauseScreen" style="display: none;">
+            <div class="pause-content">
+                <h2>ПАУЗА</h2>
+                <div class="tank-stats-ingame">
+                    <!-- Основные характеристики -->
+                    <div class="stats-section">
+                        <h3>📊 Основные характеристики</h3>
+                        <div>⚡ Скорость: <span id="speedIngame">80</span></div>
+                        <div>🔫 Урон: <span id="damageIngame">20</span></div>
+                        <div>🚀 Скорострельность: <span id="fireRateIngame">500ms</span></div>
+                        <div>⚡ Скорость снаряда: <span id="bulletSpeedIngame">400</span></div>
+                    </div>
+
+                    <!-- Защита и восстановление -->
+                    <div class="stats-section">
+                        <h3>🛡️ Защита и восстановление</h3>
+                        <div>🛡️ Броня: <span id="armorIngame">5</span></div>
+                        <div>⚙️ Регенерация: <span id="regenIngame">0</span></div>
+                        <div>🩸 Вампиризм: <span id="lifeStealIngame">0%</span></div>
+                        <div>🔋 Емкость энергетического щита: <span id="maxShieldIngame">0</span></div>
+                        <div>⚡ Регенерация щита: <span id="shieldRegenRateIngame">0</span></div>
+                    </div>
+
+                    <!-- Способности -->
+                    <div class="stats-section">
+                        <h3>💥 Способности</h3>
+                        <div>💣 Урон от взрыва: <span id="energyBlastDamageIngame">0</span></div>
+                        <div>📏 Радиус взрыва: <span id="energyBlastRadiusIngame">0</span></div>
+                        <div>⏱️ Перезарядка взрыва: <span id="energyBlastCooldownIngame">0s</span></div>
+                        <div>📏 Дистанция телепорта: <span id="teleportDistanceIngame">0</span></div>
+                        <div>⏱️ Перезарядка телепорта: <span id="teleportCooldownIngame">0s</span></div>
+                        <div>⚡ Урон от цепной молнии: <span id="lightningDamageIngame">0</span></div>
+                        <div>📊 Количество прыжков: <span id="lightningCountIngame">0s</span></div>
+                        <div>📏 Радиус прыжка молнии: <span id="lightningRadiusIngame">0</span></div>
+                        <div>⏱️ Перезарядка цепной молнии: <span id="lightningCooldownIngame">0s</span></div>
+                    </div>
+                </div>
+                <p>Нажмите ESC или кнопку "Продолжить" для возобновления игры</p>
+                <button onclick="togglePause()" class="menu-btn">Продолжить</button>
+                <button onclick="backToMenu()" class="menu-btn">В главное меню</button>
+            </div>
+        </div>
+        <div id="bonusScreen">
+            <div class="bonus-content">
+                <h2>Выберите улучшение</h2>
+                <div id="bonusOptions"></div>
+                <button id="shuffleButton" class="shuffle-btn" onclick="bonusManager.shuffleBonuses()">
+                    🔄 Перетасовать (Осталось: <span id="shuffleCount">3</span>)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/backgrounds/grass.js"></script>
+    <script src="js/bullets/bullet.js"></script>
+    <script src="js/bullets/energyRedBullet.js"></script>
+    <script src="js/bullets/rocket.js"></script>
+    <script src="js/bullets/iceBullet.js"></script>
+    <script src="js/bullets/poisonBullet.js"></script>
+    <script src="js/entyties/powerUp.js"></script>
+    <script src="js/playerTank.js"></script>
+    <script src="js/enemies/enemyTank.js"></script>
+    <script src="js/enemies/strongEnemyTank.js"></script>
+    <script src="js/enemies/sniper.js"></script>
+    <script src="js/enemies/rocketTank.js"></script>
+    <script src="js/enemies/machineGunTank.js"></script>
+    <script src="js/enemies/heavyTank.js"></script>
+    <script src="js/enemies/bossTank.js"></script>
+    <script src="js/enemies/smartTank.js"></script>
+    <script src="js/enemies/wave1.js"></script>
+    <script src="js/enemies/wave2.js"></script>
+    <script src="js/enemies/shieldTank.js"></script>
+    <script src="js/enemies/teleportTank.js"></script>
+    <script src="js/enemies/minerTank.js"></script>
+    <script src="js/enemies/kamikazeTank.js"></script>
+    <script src="js/enemies/berserkTank.js"></script>
+    <script src="js/enemies/smokeTank.js"></script>
+    <script src="js/enemies/iceTank.js"></script>
+    <script src="js/enemies/poisonTank.js"></script>
+
+    <script src="js/entyties/wall.js"></script>
+    <script src="js/particle.js"></script>
+
+    <script src="js/managers/updateUI.js"></script>
+    <script src="js/managers/eventHandlers.js"></script>
+    <script src="js/managers/statManager.js"></script>
+    <script src="js/managers/bonusManager.js"></script>
+    <script src="js/managers/checkCollisionsManager.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
