@@ -1,38 +1,40 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Танки</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div id="mainMenu">
         <h1>ТАНКОВАЯ БИТВА</h1>
         <div id="points">💰 Очки: 0</div>
-        
+
         <div class="stats">
             <h2>Улучшения характеристик танка</h2>
-            
+
             <div class="stats-columns">
                 <div class="stat-item">
                     <span class="stat-name">❤️ Макс. здоровье</span>
                     <span class="stat-value" id="healthValue">100</span>
                     <button class="upgrade-btn" onclick="upgrade('health')">Улучшить (50)</button>
                 </div>
-            
+
                 <div class="stat-item">
                     <span class="stat-name">⚡ Скорость</span>
                     <span class="stat-value" id="speedValue">80</span>
                     <button class="upgrade-btn" onclick="upgrade('speed')">Улучшить (30)</button>
                 </div>
-                
+
                 <div class="stat-item">
                     <span class="stat-name">🔫 Урон</span>
                     <span class="stat-value" id="damageValue">20</span>
                     <button class="upgrade-btn" onclick="upgrade('damage')">Улучшить (40)</button>
                 </div>
-                
+
                 <div class="stat-item">
                     <span class="stat-name">🚀 Скорострельность</span>
                     <span class="stat-value" id="fireRateValue">500ms</span>
@@ -64,7 +66,7 @@
                 </div>
             </div>
         </div>
-        
+
         <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn">Сбросить</button>
         <button id="startBtn" onclick="startGame()">НАЧАТЬ ИГРУ</button>
     </div>
@@ -79,7 +81,7 @@
                     Рекорд: <span id="recordScoreValue">0</span>
                 </div>
             </div>
-            
+
             <div> Волна: <span id="waveValue">0</span></div>
 
             <div>
@@ -243,6 +245,7 @@
     <script src="js/bullets/rocket.js"></script>
     <script src="js/bullets/iceBullet.js"></script>
     <script src="js/bullets/poisonBullet.js"></script>
+    <script src="js/bullets/kamikazeDrone.js"></script>
     <script src="js/entyties/powerUp.js"></script>
     <script src="js/playerTank.js"></script>
     <script src="js/enemies/enemyTank.js"></script>
@@ -277,4 +280,5 @@
     <script src="js/managers/checkCollisionsManager.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>
