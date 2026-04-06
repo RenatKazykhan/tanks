@@ -93,6 +93,14 @@ class PlayerTank {
         this.chainLightningBounceRange = 200;
         this.lightningEffects = [];
 
+        // Дрон-камикадзе
+        this.hasDroneKamikaze = false;
+        this.droneDamage = 50;
+        this.droneCooldown = 3000;
+        this.lastDroneTime = 0;
+        this.droneExplosionRadius = 60;
+        this.drones = [];
+
         // Удача
         this.lucky = 0;
 
@@ -215,6 +223,7 @@ class PlayerTank {
         // Обновление частиц льда
         this.updateFrostParticles(deltaTime);
         this.updateHealParticles(deltaTime);
+        this.updateDrones(enemies, deltaTime);
 
         // Ограничение движения в пределах мира
         this.x = Math.max(player.width/2, Math.min(WORLD_WIDTH - player.width/2, player.x));
@@ -918,6 +927,9 @@ class PlayerTank {
 
         // Рисуем пули
         this.bullets.forEach(bullet => bullet.draw());
+        
+        // Рисуем дроны
+        this.drawDrones();
     }
     
     // Добавьте в метод draw после отрисовки танка
@@ -2127,5 +2139,36 @@ class PlayerTank {
             life: 1.0,
             width: 3
         });
+    }
+
+    // Обновление дронов-камикадзе
+    updateDrones(enemies, deltaTime) {
+        if (!this.hasDroneKamikaze) return;
+
+        const currentTime = Date.now();
+        
+        // Спавн нового дрона
+        if (currentTime - this.lastDroneTime >= this.droneCooldown) {
+            // Создаем дрон в позиции игрока
+            const drone = new KamikazeDrone(
+                this.x,
+                this.y,
+                this.droneDamage,
+                'player'
+            );
+            this.drones.push(drone);
+            this.lastDroneTime = currentTime;
+        }
+
+        // Обновление существующих дронов
+        this.drones = this.drones.filter(drone => {
+            drone.update(enemies, this, deltaTime);
+            return drone.active;
+        });
+    }
+
+    // Отрисовка дронов
+    drawDrones() {
+        this.drones.forEach(drone => drone.draw());
     }
 }
