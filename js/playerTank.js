@@ -340,10 +340,9 @@ class PlayerTank {
         
         if (now - this.lastShot > adjustedCooldown) {
             this.newBullet();
+            soundManager.playShoot();
             if(this.doubleShot){
-                // Генерируем случайное число от 0 до 1
                 const probability = Math.random();
-                // Второй выстрел происходит с вероятностью 25%
                 if (probability < this.doubleShotChance) {
                     setTimeout(() => {
                         this.newBullet();
@@ -1723,6 +1722,11 @@ class PlayerTank {
         this.health -= damage;
         statManager.takeDamages += damage;
 
+        // Звук и эффекты при получении урона
+        soundManager.playHit();
+        cameraShake.trigger(4 + damage * 0.1);
+        damageFlash = 1;
+
         if (this.health <= 0) {
             gameRunning = false;
             document.getElementById('gameOver').style.display = 'block';
@@ -1808,10 +1812,9 @@ class PlayerTank {
         // Обновляем состояние
         this.lastTeleportTime = now;
         this.isTeleporting = true;
-        this.teleportAnimationTime = 300; // 300мс анимация
+        this.teleportAnimationTime = 300;
         
-        // Звуковой эффект (если есть система звуков)
-        // playSound('teleport');
+        soundManager.playTeleport();
     }
 
     createTeleportEffect(x, y, type) {
@@ -1906,6 +1909,9 @@ class PlayerTank {
         
         // Создаем визуальные эффекты
         this.createEnergyBlastEffects(chargePercent);
+        
+        soundManager.playEnergyBlast();
+        cameraShake.trigger(12);
         
         // Возвращаем данные для обработки урона врагам
         return {
@@ -2064,6 +2070,7 @@ class PlayerTank {
         if (targetEnemy) {
             this.lastChainLightningTime = Date.now();
             this.executeChainLightning(targetEnemy, enemies);
+            soundManager.playLightning();
         }
     }
 

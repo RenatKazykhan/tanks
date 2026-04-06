@@ -45,11 +45,11 @@ let points = 0;
 
 // Характеристики танка
 const tankStats = {
-    health: 200,
-    maxHealth: 200,
-    speed: 80,
-    damage: 20,
-    fireRate: 600,
+    health: 300,
+    maxHealth: 300,
+    speed: 120,
+    damage: 30,
+    fireRate: 500,
     bulletSpeed: 300,
     regen: 0,
     armor: 0,
@@ -66,7 +66,8 @@ const upgradeCosts = {
     fireRate: 50,
     bulletSpeed: 50,
     regen: 50,
-    armor: 50
+    armor: 50,
+    lifeSteal: 50
 };
 
 // Инициализация игры
@@ -76,6 +77,34 @@ const updateUIManager = new UpdateUIManager();
 const statManager = new StatManager();
 const bonusManager = new BonusManager();
 const checkCollisionManager = new CheckCollisionManager();
+const soundManager = new SoundManager();
+const xpManager = new XPManager();
+const biomeManager = new BiomeManager();
+
+// Тряска камеры
+const cameraShake = {
+    intensity: 0,
+    decay: 8,
+    offsetX: 0,
+    offsetY: 0,
+    trigger(intensity) {
+        this.intensity = Math.max(this.intensity, intensity);
+    },
+    update(dt) {
+        if (this.intensity > 0.1) {
+            this.offsetX = (Math.random() - 0.5) * this.intensity * 2;
+            this.offsetY = (Math.random() - 0.5) * this.intensity * 2;
+            this.intensity *= Math.max(0, 1 - this.decay * dt);
+        } else {
+            this.intensity = 0;
+            this.offsetX = 0;
+            this.offsetY = 0;
+        }
+    }
+};
+
+// Красная вспышка при получении урона
+let damageFlash = 0;
 
 let enemies = [];
 let particles = [];
@@ -83,7 +112,7 @@ let keys = {};
 let mouseX = 0;
 let mouseY = 0;
 let enemySpawnTimer = 0;
-let enemySpawnInterval = 4000;
+let enemySpawnInterval = 5000;
 let powerUps = [];
 let powerUpSpawnTimer = 0;
 let walls = [];
@@ -94,8 +123,6 @@ let lastTime = 0;
 let deltaTime = 0;
 let isVictory = false;
 
-// Вызываем один раз при старте игры
-grassBackground.createGrassBackground();
 
 // Основной игровой цикл
 function gameLoop() {
@@ -104,7 +131,7 @@ function gameLoop() {
     // Вычисляем дельта-время в секундах
     deltaTime = (currentTime - lastTime) / 1000;
     lastTime = currentTime;
-    
+
     // Ограничиваем дельта-время для предотвращения больших скачков
     deltaTime = Math.min(deltaTime, 0.1);
 
@@ -114,6 +141,20 @@ function gameLoop() {
     player.update(keys, mouseX, mouseY, deltaTime);
     updateUIManager.updateHealthBar();
 
+    // Обновление тряски камеры
+    cameraShake.update(deltaTime);
+
+    // Обновление XP
+    xpManager.update(deltaTime);
+    if (xpManager.checkLevelUp()) {
+        bonusManager.showBonusSelection();
+    }
+
+    // Затухание красной вспышки
+    if (damageFlash > 0) {
+        damageFlash = Math.max(0, damageFlash - deltaTime * 4);
+    }
+
     // Спавн врагов
     enemySpawnTimer += deltaTime * 1000;
     if (enemySpawnTimer > enemySpawnInterval) {
@@ -121,7 +162,7 @@ function gameLoop() {
         enemySpawnTimer = 0;
         enemySpawnInterval = Math.max(1000, enemySpawnInterval - 50);
     }
-        
+
     // Регенерация здоровья игрока
     regenTimer += deltaTime * 1000;
     if (regenTimer > 1000 && player.health < player.maxHealth) {
@@ -142,18 +183,18 @@ function gameLoop() {
         }
         return true;
     });
-    
+
     // Обновление врагов
     enemies = enemies.filter(enemy => {
         if (enemy.active) {
             enemy.update(player.x, player.y, deltaTime, player.bullets, walls);
-            
+
             // Проверка столкновений пуль игрока с врагами
             player.bullets.forEach(bullet => {
-                if (bullet.active && checkCollisionManager.checkCollision(bullet, enemy, bullet.radius, enemy.width/2)) {
+                if (bullet.active && checkCollisionManager.checkCollision(bullet, enemy, bullet.radius, enemy.width / 2)) {
                     enemy.takeDamage(bullet.damage);
 
-                    if(player.lifeSteal > 0) {
+                    if (player.lifeSteal > 0) {
                         player.health = Math.min(player.maxHealth, player.health + bullet.damage * player.lifeSteal);
                     }
                     statManager.healthRestoredLifeSteal += bullet.damage * player.lifeSteal;
@@ -161,33 +202,32 @@ function gameLoop() {
                     statManager.hits++;
                     bullet.active = false;
 
-                    if(!enemy.active) 
-                    {
+                    if (!enemy.active) {
                         enemyDead(enemy.x, enemy.y);
                     }
                 }
             });
-            
+
             // Проверка столкновений пуль врагов с игроком
             enemy.bullets.forEach(bullet => {
-                if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width/2)) {
+                if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
                     player.takeDamage(bullet.damage, bullet.x, bullet.y);
-                    if(bullet.isIceBullet) {
+                    if (bullet.isIceBullet) {
                         player.freeze(1000);
                     }
-                    if(bullet.isPoisonous) {
+                    if (bullet.isPoisonous) {
                         player.applyPoison(bullet.poisonDamage, bullet.poisonDuration, bullet.poisonTickRate)
                     }
                     bullet.active = false;
                     updateUIManager.updateScore();
                 }
             });
-            
+
             return true;
         }
         return false;
     });
-    
+
     // Проверка столкновений игрока со стенами
     walls.forEach(wall => {
         if (wall.checkCollisionWithRect(player.x, player.y, player.width, player.height)) {
@@ -229,35 +269,26 @@ function gameLoop() {
     });
 
     updateCamera();
-    
+
     // Очистка canvas
-    ctx.fillStyle = '#2d5a2d';
+    const biome = biomeManager.biomes[biomeManager.currentBiome];
+    ctx.fillStyle = biome.baseColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Сохранение контекста для камеры
+    // Сохранение контекста для камеры (с тряской)
     ctx.save();
-    ctx.translate(-camera.x, -camera.y);
+    ctx.translate(-camera.x + cameraShake.offsetX, -camera.y + cameraShake.offsetY);
 
-    // Рисуем сетку
-    ctx.strokeStyle = '#3a6a3a';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < WORLD_WIDTH; x += 100) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, WORLD_HEIGHT);
-        ctx.stroke();
-    }
-    for (let y = 0; y < WORLD_HEIGHT; y += 100) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(WORLD_WIDTH, y);
-        ctx.stroke();
-    }
+    // Текстурированный фон биома
+    biomeManager.drawBackground();
+
+    // Декорации (под юнитами)
+    biomeManager.drawDecorations();
 
     // Рисование
     enemies.forEach(enemy => enemy.draw());
     powerUps.forEach(powerUp => powerUp.draw());
-    walls.forEach(wall => wall.draw());
+    walls.forEach(wall => biomeManager.drawWall(wall));
     player.draw();
 
     // Обновление и отрисовка частиц
@@ -267,9 +298,42 @@ function gameLoop() {
         return particle.life > 0;
     });
 
+    // Атмосферные частицы (снег, песок, угольки)
+    biomeManager.drawAmbientParticles();
+
     drawMinimap();
 
     ctx.restore();
+
+    // === POST-PROCESSING EFFECTS (поверх мира, в экранных координатах) ===
+
+    // Красная вспышка при уроне
+    if (damageFlash > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 0, 0, ${damageFlash * 0.35})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+
+    // Красная виньетка при низком HP
+    const hpRatio = player.health / player.maxHealth;
+    if (hpRatio < 0.3 && hpRatio > 0) {
+        ctx.save();
+        const pulse = Math.sin(Date.now() * 0.005) * 0.15 + 0.15;
+        const vignetteAlpha = (1 - hpRatio / 0.3) * pulse;
+        const gradient = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, canvas.width * 0.3,
+            canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+        );
+        gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+        gradient.addColorStop(1, `rgba(180, 0, 0, ${vignetteAlpha})`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+
+    // XP-бар
+    xpManager.draw();
 
     requestAnimationFrame(gameLoop);
 }
@@ -278,7 +342,7 @@ function updateCamera() {
     // Камера центрируется на игроке
     camera.x = player.x - camera.width / 2;
     camera.y = player.y - camera.height / 2;
-    
+
     // Не даем камере выйти за границы мира
     camera.x = Math.max(0, Math.min(camera.x, WORLD_WIDTH - camera.width));
     camera.y = Math.max(0, Math.min(camera.y, WORLD_HEIGHT - camera.height));
@@ -290,14 +354,13 @@ function handleEnergyBlast(blastData) {
         const dx = enemy.x - blastData.x;
         const dy = enemy.y - blastData.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distance <= blastData.radius) {
             // Наносим урон
             enemy.takeDamage(blastData.damage);
             statManager.damageByExplode += blastData.damage;
 
-            if(!enemy.active) 
-            {
+            if (!enemy.active) {
                 enemyDead(enemy.x, enemy.y); // создает взрывы
             }
         }
@@ -319,40 +382,40 @@ function createMapFromLayout(layout) {
     const objects = {
         walls: []
     };
-    
+
     // Проходим по каждой строке макета
     for (let y = 0; y < layout.length; y++) {
         for (let x = 0; x < layout[y].length; x++) {
             const cell = layout[y][x];
             const posX = x * cellSize;
             const posY = y * cellSize;
-            
-            switch(cell) {
+
+            switch (cell) {
                 case '#': // Стена
-                    walls.push(new Wall(posX + cellSize/2, posY + cellSize/2, cellSize, cellSize));
+                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize, cellSize));
                     break;
-                    
+
                 case '-': // Горизонтальная стена
-                    walls.push(new Wall(posX + cellSize/2, posY + cellSize/2, cellSize * 1.5, cellSize * 0.5));
+                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize * 1.5, cellSize * 0.5));
                     break;
-                    
+
                 case '|': // Вертикальная стена
-                    walls.push(new Wall(posX + cellSize/2, posY + cellSize/2, cellSize * 0.5, cellSize * 1.5));
+                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize * 0.5, cellSize * 1.5));
                     break;
-                    
+
                 case 'P': // Начальная позиция игрока
-                    player.x = posX + cellSize/2;
-                    player.y = posY + cellSize/2;
+                    player.x = posX + cellSize / 2;
+                    player.y = posY + cellSize / 2;
                     break;
-                    
+
                 case 'H': // Аптечка
-                    powerUps.push(new PowerUp(posX + cellSize/2, posY + cellSize/2, 'health'));
+                    powerUps.push(new PowerUp(posX + cellSize / 2, posY + cellSize / 2, 'health'));
                     break;
-                    
+
                 case '+': // Маленькая стена (декорация)
-                    walls.push(new Wall(posX + cellSize/2, posY + cellSize/2, cellSize * 0.6, cellSize * 0.6));
+                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize * 0.6, cellSize * 0.6));
                     break;
-                    
+
                 // Можно добавить больше типов объектов
                 case ' ': // Пустое пространство
                 default:
@@ -360,7 +423,7 @@ function createMapFromLayout(layout) {
             }
         }
     }
-    
+
     return objects;
 }
 
@@ -440,8 +503,8 @@ function createWalls() {
 function upgrade(stat) {
     if (points >= upgradeCosts[stat]) {
         points -= upgradeCosts[stat];
-        
-        switch(stat) {
+
+        switch (stat) {
             case 'health':
                 tankStats.maxHealth += 25;
                 tankStats.health = tankStats.maxHealth;
@@ -480,11 +543,11 @@ function upgrade(stat) {
                 break;
             case 'lifeSteal':
                 tankStats.lifeSteal = tankStats.lifeSteal + 0.01;
-                document.getElementById('lifeStealValue').textContent = tankStats.lifeSteal.toFixed(2)*100 + '%';
+                document.getElementById('lifeStealValue').textContent = tankStats.lifeSteal.toFixed(2) * 100 + '%';
                 upgradeCosts.lifeSteal += 50;
-                break;  
+                break;
         }
-        
+
         localStorage.setItem('tankGameStats', JSON.stringify(tankStats));
 
         updateUIManager.updateUpgradeUI();
@@ -493,12 +556,16 @@ function upgrade(stat) {
 
 function enemyDead(x, y) {
     createExplosion(x, y); // создает взрывы
+    soundManager.playExplosion();
     score += 50;
     updateUIManager.updateScore(); // обновляет счет на экране
     statManager.kills++;
 
-    // Шанс выпадения бонуса при убийстве врага
-    if (Math.random() < 0.3) {
+    // Добавляем XP за убийство
+    xpManager.addXP(20 + Math.floor(xpManager.level * 2));
+
+    // Шанс выпадения аптечки при убийстве врага
+    if (Math.random() < 0.15) {
         powerUps.push(new PowerUp(x, y, 'health'));
     }
 }
@@ -507,8 +574,8 @@ function enemyDead(x, y) {
 function spawnEnemy() {
     const side = Math.floor(Math.random() * 4);
     let x, y;
-    
-    switch(side) {
+
+    switch (side) {
         case 0: // сверху
             x = Math.random() * WORLD_WIDTH;
             y = -50;
@@ -527,74 +594,78 @@ function spawnEnemy() {
             break;
     }
 
-    if(tankIndex <= 15){
+    // Автоматическая смена биома
+    const newBiome = biomeManager.getBiomeForWave(tankIndex);
+    biomeManager.setBiome(newBiome);
+
+    if (tankIndex <= 15) {
         document.getElementById('waveValue').textContent = 1;
         enemies.push(new Wave1(x, y));
     }
-    else if(tankIndex <= 30){
+    else if (tankIndex <= 30) {
         document.getElementById('waveValue').textContent = 2;
         enemies.push(new IceTank(x, y));
     }
-    else if(tankIndex <= 45){
+    else if (tankIndex <= 45) {
         document.getElementById('waveValue').textContent = 2;
         enemies.push(new SmokeTank(x, y));
     }
-    else if(tankIndex <= 60){
+    else if (tankIndex <= 60) {
         document.getElementById('waveValue').textContent = 3;
         enemies.push(new BerserkTank(x, y));
     }
-    else if(tankIndex <= 75){
+    else if (tankIndex <= 75) {
         document.getElementById('waveValue').textContent = 4;
         enemies.push(new KamikazeTank(x, y));
     }
-    else if(tankIndex <= 90){
+    else if (tankIndex <= 90) {
         document.getElementById('waveValue').textContent = 5;
         enemies.push(new MinerTank(x, y));
     }
-    else if(tankIndex <= 105){
+    else if (tankIndex <= 105) {
         document.getElementById('waveValue').textContent = 6;
         enemies.push(new TeleportTank(x, y));
     }
-    else if(tankIndex <= 120){
+    else if (tankIndex <= 120) {
         document.getElementById('waveValue').textContent = 7;
         enemies.push(new ShieldTank(x, y));
     }
-    else if(tankIndex <= 135){
+    else if (tankIndex <= 135) {
         document.getElementById('waveValue').textContent = 8;
         enemies.push(new SmartTank(x, y));
     }
-    else if(tankIndex <= 150){
+    else if (tankIndex <= 150) {
         document.getElementById('waveValue').textContent = 9;
         enemies.push(new MachineGunTank(x, y));
     }
-    else if(tankIndex <= 170){
+    else if (tankIndex <= 170) {
         document.getElementById('waveValue').textContent = 10;
         enemies.push(new HeavyTank(x, y));
         //enemies.push(new PoisonTank(x, y));
     }
-    else if(tankIndex <= 190){
+    else if (tankIndex <= 190) {
         document.getElementById('waveValue').textContent = 11;
         enemies.push(new RocketTank(x, y));
     }
-    else if(tankIndex <= 210){
+    else if (tankIndex <= 210) {
         document.getElementById('waveValue').textContent = 12;
         enemies.push(new StrongEnemyTank(x, y));
     }
-    else if(tankIndex <= 230){
+    else if (tankIndex <= 230) {
         document.getElementById('waveValue').textContent = 13;
         enemies.push(new Sniper(x, y));
     }
-    else if(tankIndex <= 240){
+    else if (tankIndex <= 240) {
         document.getElementById('waveValue').textContent = 14;
         // пазуа
     }
-    else if(tankIndex <= 250){
+    else if (tankIndex <= 250) {
         document.getElementById('waveValue').textContent = 15;
         enemies.push(new BossTank(x, y));
     }
-    else if(tankIndex > 270 && enemies.length === 0) {
+    else if (tankIndex > 270 && enemies.length === 0) {
         showVictory();
-        gameRunning =false;
+        gameRunning = false;
     }
     tankIndex++;
 }
@@ -672,14 +743,20 @@ function resetGame() {
     powerUpSpawnTimer = 0;
     tankIndex = 0;
     gameRunning = true;
+    damageFlash = 0;
     createWalls();
 
+    biomeManager.currentBiome = 'grass';
+    biomeManager.init();
+
     bonusManager.resetShuffles();
+    xpManager.reset();
 
     updateUIManager.updateScore();
     updateUIManager.updateStatsDisplayMainMenu();
     document.getElementById('gameOver').style.display = 'none';
     lastTime = performance.now();
+    soundManager.resume();
     gameLoop();
 }
 
@@ -709,9 +786,9 @@ function backToMenu() {
     updateUIManager.updateUpgradeUI();;
 }
 
-function togglePause() {    
+function togglePause() {
     gameRunning = !gameRunning;
-    
+
     if (!gameRunning) {
         document.getElementById('pauseScreen').style.display = 'flex';
         updateUIManager.updateStatsDisplayInGame();
@@ -735,7 +812,7 @@ function init() {
     if (savedPoints) {
         points = parseInt(savedPoints);
     }
-    
+
     const savedRecord = localStorage.getItem('tankGameRecord');
     if (savedRecord) {
         recordScore = parseInt(savedRecord);
@@ -754,9 +831,15 @@ function init() {
     }
 
     updateUIManager.updateUpgradeUI();
-    
+    soundManager.init();
+
     // Инициализируем обработчики событий
-    initEventHandlers(); // или addEventHandlers() если используете второй вариант
+    initEventHandlers();
+}
+
+function toggleSound() {
+    soundManager.enabled = !soundManager.enabled;
+    document.getElementById('soundBtn').textContent = soundManager.enabled ? '🔊' : '🔇';
 }
 
 // Запуск инициализации после загрузки страницы
@@ -765,12 +848,12 @@ document.addEventListener('DOMContentLoaded', init);
 // Функция сброса всех характеристик
 function resetAllStats() {
     // Сбрасываем характеристики на начальные значения
-    tankStats.health = 200;
-    tankStats.maxHealth = 200;
-    tankStats.speed = 80;
-    tankStats.damage = 20;
-    tankStats.fireRate = 600;
-    tankStats.bulletSpeed = 300;
+    tankStats.health = 300;
+    tankStats.maxHealth = 300;
+    tankStats.speed = 120;
+    tankStats.damage = 30;
+    tankStats.fireRate = 400;
+    tankStats.bulletSpeed = 350;
     tankStats.regen = 0;
     tankStats.armor = 0;
     tankStats.timberSawDamage = 0;
@@ -791,11 +874,11 @@ function drawMinimap() {
     // Очистка мини-карты
     minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-    
+
     // Рамка мини-карты
     minimapCtx.strokeStyle = '#444';
     minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-    
+
     // Отрисовка игрока
     minimapCtx.fillStyle = '#00ff00';
     minimapCtx.beginPath();
@@ -807,7 +890,7 @@ function drawMinimap() {
         Math.PI * 2
     );
     minimapCtx.fill();
-    
+
     // Отрисовка врагов
     minimapCtx.fillStyle = '#ff0000';
     enemies.forEach(enemy => {
@@ -821,7 +904,7 @@ function drawMinimap() {
         );
         minimapCtx.fill();
     });
-    
+
     // Отрисовка бонусов
     minimapCtx.fillStyle = '#ffff00';
     powerUps.forEach(powerUp => {
@@ -832,7 +915,7 @@ function drawMinimap() {
             2
         );
     });
-    
+
     // Отрисовка области видимости камеры
     minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     minimapCtx.strokeRect(
@@ -847,14 +930,14 @@ function showVictory() {
     // Скрываем игровые элементы
     document.getElementById('gameContainer').style.display = 'none';
     document.getElementById('gameOver').style.display = 'none';
-    
+
     // Показываем экран победы
     document.getElementById('victory').style.display = 'block';
     document.getElementById('victoryScore').textContent = score;
-    
+
     // Создаем эффект конфетти
     createConfetti();
-    
+
     // Воспроизводим звук победы (если есть)
     // playVictorySound();
 }
@@ -862,7 +945,7 @@ function showVictory() {
 function createConfetti() {
     const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'];
     const victory = document.getElementById('victory');
-    
+
     for (let i = 0; i < 50; i++) {
         setTimeout(() => {
             const confetti = document.createElement('div');
@@ -872,7 +955,7 @@ function createConfetti() {
             confetti.style.animationDelay = Math.random() * 3 + 's';
             confetti.style.animationDuration = (Math.random() * 2 + 3) + 's';
             victory.appendChild(confetti);
-            
+
             // Удаляем конфетти после анимации
             setTimeout(() => confetti.remove(), 5000);
         }, i * 100);
