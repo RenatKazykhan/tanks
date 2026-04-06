@@ -277,6 +277,30 @@ class BonusManager {
                 player.maxChainTargets += 2;
                 player.chainLightningBounceRange += 50;
             }
+        },
+        // Оружие - дрон камикадзе
+        droneKamikaze: {
+            name: "Дрон-камикадзе",
+            icon: "🛸",
+            description: "Автоматически запускает дрон-камикадзе каждые <span class='bonus-value'>3 секунды</span>. Дрон летит к ближайшему врагу и взрывается, нанося урон по области.",
+            rarity: "rare",
+            apply: (player) => {
+                player.hasDroneKamikaze = true;
+                player.droneDamage = 50;
+                player.droneCooldown = 3000;
+                player.droneExplosionRadius = 60;
+            }
+        },
+        droneKamikaze2: {
+            name: "Улучшенный дрон",
+            icon: "🛸",
+            description: "Увеличивает урон дрона на <span class='bonus-value'>25</span> и уменьшает перезарядку на <span class='bonus-value'>0.5 секунды</span>.",
+            rarity: "epic",
+            apply: (player) => {
+                player.droneDamage += 25;
+                player.droneCooldown = Math.max(1000, player.droneCooldown - 500);
+                player.droneExplosionRadius += 15;
+            }
         }
     };
 
@@ -377,7 +401,6 @@ class BonusManager {
         const selected = [];
         const usedBonuses = new Set();
 
-        // исключаем из выбора те, которые еще не актвирированы
         if (!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot1'));
         if (!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot2'));
         if (!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot3'));
@@ -395,6 +418,7 @@ class BonusManager {
         if (!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning1'));
         if (!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning2'));
         if (!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning3'));
+        if (!player.hasDroneKamikaze || player.droneCooldown <= 500) usedBonuses.add(allBonuses.find(bonus => bonus === 'droneKamikaze2'));
 
         // исключаем из выбора те, которые дают активацию
         if (player.doubleShot) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot'));
@@ -403,6 +427,7 @@ class BonusManager {
         if (player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield'));
         if (player.hasRegen) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen'));
         if (player.hasChainLightning) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning'));
+        if (player.hasDroneKamikaze) usedBonuses.add(allBonuses.find(bonus => bonus === 'droneKamikaze'));
 
         if (player.lucky == 40) usedBonuses.add(allBonuses.find(bonus => bonus === 'lucky'));
 
