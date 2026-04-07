@@ -243,7 +243,7 @@ class PoisonTank extends SmartTank {
 
         if (distance < 350) {            
             // Создаем ядовитую пулю
-            const bullet = new PoisonBullet(
+            const bullet = new Bullet(
                 this.x + Math.cos(this.angle) * (this.width/2 + 10),
                 this.y + Math.sin(this.angle) * (this.width/2 + 10),
                 this.damage,

@@ -49,14 +49,25 @@ class BiomeManager {
                 ambientParticle: 'ember'
             }
         };
+
+        this.currentBiome = 'grass';
+        this.decorations = [];
+        this.particles = [];
+        this.basePattern = null;
     }
 
     // Выбрать биом на основе номера волны
-    getBiomeForWave(tankIndex) {
-        if (tankIndex <= 60) return 'grass';
-        if (tankIndex <= 120) return 'desert';
-        if (tankIndex <= 190) return 'snow';
-        return 'lava';
+      getBiomeForWave(tankIndex) {
+        if (currentStage === 2) {
+            return 'lava'; // Второй этап всегда в городе
+        }
+        
+        // Для первого этапа оставляем прежнюю логику
+        if (tankIndex <= 15) return 'grass';
+        else if (tankIndex <= 30) return 'snow';
+        else if (tankIndex <= 60) return 'lava';
+        else if (tankIndex <= 120) return 'desert';
+        else return 'grass';
     }
 
     // Применить биом (перегенерировать фон)
