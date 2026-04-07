@@ -1,38 +1,40 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Танки</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div id="mainMenu">
         <h1>ТАНКОВАЯ БИТВА</h1>
         <div id="points">💰 Очки: 0</div>
-        
+
         <div class="stats">
             <h2>Улучшения характеристик танка</h2>
-            
+
             <div class="stats-columns">
                 <div class="stat-item">
                     <span class="stat-name">❤️ Макс. здоровье</span>
                     <span class="stat-value" id="healthValue">100</span>
                     <button class="upgrade-btn" onclick="upgrade('health')">Улучшить (50)</button>
                 </div>
-            
+
                 <div class="stat-item">
                     <span class="stat-name">⚡ Скорость</span>
                     <span class="stat-value" id="speedValue">80</span>
                     <button class="upgrade-btn" onclick="upgrade('speed')">Улучшить (30)</button>
                 </div>
-                
+
                 <div class="stat-item">
                     <span class="stat-name">🔫 Урон</span>
                     <span class="stat-value" id="damageValue">20</span>
                     <button class="upgrade-btn" onclick="upgrade('damage')">Улучшить (40)</button>
                 </div>
-                
+
                 <div class="stat-item">
                     <span class="stat-name">🚀 Скорострельность</span>
                     <span class="stat-value" id="fireRateValue">500ms</span>
@@ -64,7 +66,7 @@
                 </div>
             </div>
         </div>
-        
+
         <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn">Сбросить</button>
         <button id="startBtn" onclick="startGame()">НАЧАТЬ ИГРУ</button>
     </div>
@@ -79,7 +81,7 @@
                     Рекорд: <span id="recordScoreValue">0</span>
                 </div>
             </div>
-            
+
             <div> Волна: <span id="waveValue">0</span></div>
 
             <div>
@@ -87,6 +89,7 @@
                 <div>Макс. здоровье: <span id="MaxHealth">100</span></div>
             </div>
             <button id="pauseBtn" onclick="togglePause()">Пауза</button>
+            <button id="soundBtn" onclick="toggleSound()" style="margin-left:5px">🔊</button>
         </div>
 
         <canvas id="gameCanvas"></canvas>
@@ -178,9 +181,7 @@
             <div class="victory-subtitle">Поздравляем! Вы прошли все волны!</div>
             <div>Ваш счет: <span id="victoryScore">0</span></div>
             <button onclick="resetGame()" class="victory-button">Играть снова</button>
-            <table class="stats-table">
-                <!-- Здесь можно продублировать статистику из gameOver -->
-            </table>
+            <button onclick="backToMenu()" class="menu-btn">В главное меню</button>
         </div>
         <div id="pauseScreen" style="display: none;">
             <div class="pause-content">
@@ -236,11 +237,14 @@
     </div>
 
     <script src="js/backgrounds/grass.js"></script>
+    <script src="js/backgrounds/biomeManager.js"></script>
     <script src="js/bullets/bullet.js"></script>
     <script src="js/bullets/energyRedBullet.js"></script>
     <script src="js/bullets/rocket.js"></script>
     <script src="js/bullets/iceBullet.js"></script>
     <script src="js/bullets/poisonBullet.js"></script>
+    <script src="js/bullets/kamikazeDrone.js"></script>
+    <script src="js/bullets/lightningBullet.js"></script>
     <script src="js/entyties/powerUp.js"></script>
     <script src="js/playerTank.js"></script>
     <script src="js/enemies/enemyTank.js"></script>
@@ -265,11 +269,16 @@
     <script src="js/entyties/wall.js"></script>
     <script src="js/particle.js"></script>
 
+    <script src="js/managers/soundManager.js"></script>
+    <script src="js/managers/xpManager.js"></script>
+
     <script src="js/managers/updateUI.js"></script>
     <script src="js/managers/eventHandlers.js"></script>
     <script src="js/managers/statManager.js"></script>
     <script src="js/managers/bonusManager.js"></script>
+    <script src="js/managers/waeponManager.js"></script>
     <script src="js/managers/checkCollisionsManager.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>

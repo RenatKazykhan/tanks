@@ -8,30 +8,6 @@ class BonusManager {
     // Определение всех возможных бонусов
     bonusTypes = {
         // Обычные бонусы
-        health: {
-            name: "Восстановление",
-            icon: "⚙️",
-            description: "Восстанавливает <span class='bonus-value'>25%</span> здоровья и увеличивает пассивную регенрецию на <span class='bonus-value'>1 hp/сек</span>",
-            rarity: "common",
-            maxValue: 25,
-            apply: (player) => {
-                player.health = Math.min(player.health + player.maxHealth * 0.25, player.maxHealth);
-                player.regen += 1;
-                updateUIManager.updateHealthBar();
-            }
-        },
-        maxHealth: {
-            name: "Крепкая броня",
-            icon: "❤️",
-            description: "Увеличивает максимальное здоровье на <span class='bonus-value'>25</span>",
-            rarity: "common",
-            maxValue: 3000,
-            apply: (player) => {
-                player.maxHealth += 25;
-                player.health += 25;
-                updateUIManager.updateHealthBar();
-            }
-        },
         reRoll: {
             name: "Перетасовка",
             icon: "🔄",
@@ -40,64 +16,6 @@ class BonusManager {
             maxValue: 3000,
             apply: (player) => {
                 this.shuffleCount += 3;
-            }
-        },
-        doubleShot1: {
-            name: "Двойной выстрел",
-            icon: "🔥",
-            description: "Увеличивает вероятность двойного выстрела на <span class='bonus-value'>5%</span>",
-            rarity: "common",
-            apply: (player) => {
-                player.doubleShotChance += 0.05;
-            }
-        },
-        speed: {
-            name: "Турбо двигатель",
-            icon: "⚡",
-            description: "Увеличивает скорость на <span class='bonus-value'>10</span>",
-            rarity: "common",
-            maxValue: 400,
-            apply: (player) => {
-                player.speed += 10;
-            }
-        },
-        damage: {
-            name: "Усиленные снаряды",
-            icon: "💥",
-            description: "Увеличивает урон на <span class='bonus-value'>15</span>",
-            rarity: "common",
-            apply: (player) => {
-                player.damage += 15;
-            }
-        },
-        fireRate: {
-            name: "Скорострельность",
-            icon: "🔫",
-            description: "Уменьшает перезарядку на <span class='bonus-value'>15 ms</span>",
-            rarity: "common",
-            maxValue: 150,
-            apply: (player) => {
-                player.shotCooldown -= 15;
-            }
-        },
-        bulletSpeed: {
-            name: "Быстрые снаряды",
-            icon: "🚀",
-            description: "Увеличивает скорость снарядов на <span class='bonus-value'>25</span>",
-            rarity: "common",
-            maxValue: 1500,
-            apply: (player) => {
-                player.bulletSpeed += 25;
-            }
-        },
-        armor: {
-            name: "Реактивная броня",
-            icon: "🛡️",
-            description: "Увеличивает шанс срабатывания блока на <span class='bonus-value'>3%</span>",
-            rarity: "common",
-            maxValue: 50,
-            apply: (player) => {
-                player.armor += 3;
             }
         },
         lightning1: {
@@ -158,11 +76,11 @@ class BonusManager {
         health2: {
             name: "Восстановление",
             icon: "⚙️",
-            description: "Восстанавливает <span class='bonus-value'>50%</span> здоровья и увеличивает пассивную регенрецию на <span class='bonus-value'>3 hp/сек</span>",
+            description: "Восстанавливает <span class='bonus-value'>50%</span> здоровья и увеличивает пассивную регенрецию на <span class='bonus-value'>5 hp/сек</span>",
             rarity: "rare",
             apply: (player) => {
                 player.health = Math.min(player.health + player.maxHealth * 0.5, player.maxHealth);
-                player.regen += 3;
+                player.regen += 5;
                 updateUIManager.updateHealthBar();
             }
         },
@@ -180,10 +98,10 @@ class BonusManager {
         doubleShot2: {
             name: "Двойной выстрел",
             icon: "🔥",
-            description: "Увеличивает вероятность двойного выстрела на <span class='bonus-value'>10%</span>",
+            description: "Увеличивает вероятность двойного выстрела на <span class='bonus-value'>15%</span>",
             rarity: "rare",
             apply: (player) => {
-                player.doubleShotChance += 0.1;
+                player.doubleShotChance += 0.15;
             }
         },
         lifeSteal2: {
@@ -256,21 +174,24 @@ class BonusManager {
         shield: {
             name: "Аура щита",
             icon: "🛡️",
-            description: "Дает ауру щита поглощающий урон. Поглащает <span class='bonus-value'>30 урона</span>. Восстанавливается <span class='bonus-value'>1 ед/сек</span>, задержка перед регенерацией <span class='bonus-value'>3 секунды</span>",
+            description: "Дает ауру щита поглощающий урон. Поглащает <span class='bonus-value'>100 урона</span>. Восстанавливается <span class='bonus-value'>5 ед/сек</span>, задержка перед регенерацией <span class='bonus-value'>3 секунды</span>",
             rarity: "epic",
             apply: (player) => {
                 player.hasShield = true;
+                player.shield = 100;
+                player.maxShield = 100;
+                player.shieldRegenRate = 5;
             }
         },
         shield3: {
             name: "Аура щита",
             icon: "🛡️",
-            description: "Увеличивает поглощающий урон на <span class='bonus-value'>20</span>. Восстановление на <span class='bonus-value'>1 ед/сек</span>",
+            description: "Увеличивает поглощающий урон на <span class='bonus-value'>50</span>. Восстановление на <span class='bonus-value'>5 ед/сек</span>",
             rarity: "epic",
             apply: (player) => {
-                player.shield += 20;
-                player.maxShield += 20;
-                player.shieldRegenRate += 1;
+                player.shield += 50;
+                player.maxShield += 50;
+                player.shieldRegenRate += 5;
             }
         },
         teleport: {
@@ -298,7 +219,7 @@ class BonusManager {
             description: "Добавляет способность взрыв по нажатию кнопку <span class='bonus-value'>Q</span>. Урон от взрыва  <span class='bonus-value'>50</span> и радиус <span class='bonus-value'>150</span>. Перезарядка <span class='bonus-value'>10 секунд</span>",
             rarity: "epic",
             apply: (player) => {
-                player.hasEnergyBlast  = true;
+                player.hasEnergyBlast = true;
             }
         },
         explode3: {
@@ -356,35 +277,59 @@ class BonusManager {
                 player.maxChainTargets += 2;
                 player.chainLightningBounceRange += 50;
             }
+        },
+        // Оружие - дрон камикадзе
+        droneKamikaze: {
+            name: "Дрон-камикадзе",
+            icon: "🛸",
+            description: "Автоматически запускает дрон-камикадзе каждые <span class='bonus-value'>3 секунды</span>. Дрон летит к ближайшему врагу и взрывается, нанося урон по области.",
+            rarity: "rare",
+            apply: (player) => {
+                player.hasDroneKamikaze = true;
+                player.droneDamage = 50;
+                player.droneCooldown = 3000;
+                player.droneExplosionRadius = 60;
+            }
+        },
+        droneKamikaze2: {
+            name: "Улучшенный дрон",
+            icon: "🛸",
+            description: "Увеличивает урон дрона на <span class='bonus-value'>25</span> и уменьшает перезарядку на <span class='bonus-value'>0.5 секунды</span>.",
+            rarity: "epic",
+            apply: (player) => {
+                player.droneDamage += 25;
+                player.droneCooldown = Math.max(1000, player.droneCooldown - 500);
+                player.droneExplosionRadius += 15;
+            }
         }
     };
 
-        // Функция показа экрана выбора бонусов
+    // Функция показа экрана выбора бонусов
     // Обновите метод showBonusSelection
     showBonusSelection() {
         gameRunning = false;
-        
+
         const bonusScreen = document.getElementById('bonusScreen');
-        
+
         // Генерируем и показываем бонусы
         this.displayNewBonuses();
-        
+
         // Обновляем счетчик перетасовок
         this.updateShuffleButton();
-        
+
         bonusScreen.style.display = 'flex';
     }
 
     // Новый метод для отображения бонусов
     displayNewBonuses() {
         const bonusOptions = document.getElementById('bonusOptions');
-        
+
         // Очищаем предыдущие опции
         bonusOptions.innerHTML = '';
-        
+
         // Генерируем 3 случайных бонуса
         this.currentBonuses = this.generateRandomBonuses();
-        
+
         this.currentBonuses.forEach((bonus, index) => {
             let bonusRarityText = bonus.rarity === 'common' ? 'обычный' : bonus.rarity === 'rare' ? 'редкий' : 'эпический';
 
@@ -396,44 +341,44 @@ class BonusManager {
                 <div class="bonus-name">${bonus.name}</div>
                 <div class="bonus-description">${bonus.description}</div>
             `;
-            
+
             card.addEventListener('click', () => this.selectBonus(bonus.key));
             bonusOptions.appendChild(card);
         });
     }
 
-      // Новый метод для перетасовки бонусов
+    // Новый метод для перетасовки бонусов
     shuffleBonuses() {
         if (this.shuffleCount > 0) {
             this.shuffleCount--;
-            
+
             // Анимация перетасовки
             const bonusOptions = document.getElementById('bonusOptions');
             bonusOptions.style.opacity = '0';
-            
+
             setTimeout(() => {
                 this.displayNewBonuses();
                 bonusOptions.style.opacity = '1';
             }, 300);
-            
+
             // Обновляем кнопку
             this.updateShuffleButton();
-            
+
             // Звуковой эффект (если есть)
             // playSound('shuffle');
         }
     }
 
-        // Метод для обновления состояния кнопки перетасовки
+    // Метод для обновления состояния кнопки перетасовки
     updateShuffleButton() {
         const shuffleButton = document.getElementById('shuffleButton');
         const shuffleCountSpan = document.getElementById('shuffleCount');
-        
+
         if (shuffleButton) {
-            if(shuffleCountSpan) {
+            if (shuffleCountSpan) {
                 shuffleCountSpan.textContent = this.shuffleCount;
             }
-            
+
             if (this.shuffleCount <= 0) {
                 shuffleButton.disabled = true;
             }
@@ -442,7 +387,7 @@ class BonusManager {
             }
         }
     }
-    
+
 
     // Метод для сброса счетчика перетасовок (вызывается при начале новой игры)
     resetShuffles() {
@@ -456,47 +401,48 @@ class BonusManager {
         const selected = [];
         const usedBonuses = new Set();
 
-        // исключаем из выбора те, которые еще не актвирированы
-        if(!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot1'));
-        if(!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot2'));
-        if(!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot3'));
-        if(!player.canTeleport || player.teleportCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport1'));
-        if(!player.canTeleport || player.teleportCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport2'));
-        if(!player.canTeleport || player.teleportCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport3'));
-        if(!player.hasEnergyBlast || player.energyBlastCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode1'));
-        if(!player.hasEnergyBlast || player.energyBlastCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode2'));
-        if(!player.hasEnergyBlast || player.energyBlastCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode3'));
-        if(!player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield1'));
-        if(!player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield2'));
-        if(!player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield3'));
-        if(!player.hasRegen || player.rapidRegenCooldown <= 7000) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen2'));
-        if(!player.hasRegen || player.rapidRegenCooldown <= 7000) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen3'));
-        if(!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning1'));
-        if(!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning2'));
-        if(!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning3'));
+        if (!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot1'));
+        if (!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot2'));
+        if (!player.doubleShot || player.doubleShotChance >= 1) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot3'));
+        if (!player.canTeleport || player.teleportCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport1'));
+        if (!player.canTeleport || player.teleportCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport2'));
+        if (!player.canTeleport || player.teleportCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport3'));
+        if (!player.hasEnergyBlast || player.energyBlastCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode1'));
+        if (!player.hasEnergyBlast || player.energyBlastCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode2'));
+        if (!player.hasEnergyBlast || player.energyBlastCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode3'));
+        if (!player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield1'));
+        if (!player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield2'));
+        if (!player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield3'));
+        if (!player.hasRegen || player.rapidRegenCooldown <= 7000) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen2'));
+        if (!player.hasRegen || player.rapidRegenCooldown <= 7000) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen3'));
+        if (!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning1'));
+        if (!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning2'));
+        if (!player.hasChainLightning || player.chainLightningCooldown <= 2200) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning3'));
+        if (!player.hasDroneKamikaze || player.droneCooldown <= 500) usedBonuses.add(allBonuses.find(bonus => bonus === 'droneKamikaze2'));
 
         // исключаем из выбора те, которые дают активацию
-        if(player.doubleShot) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot'));
-        if(player.canTeleport) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport'));
-        if(player.hasEnergyBlast) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode'));
-        if(player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield'));
-        if(player.hasRegen) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen'));
-        if(player.hasChainLightning) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning'));
+        if (player.doubleShot) usedBonuses.add(allBonuses.find(bonus => bonus === 'doubleShot'));
+        if (player.canTeleport) usedBonuses.add(allBonuses.find(bonus => bonus === 'teleport'));
+        if (player.hasEnergyBlast) usedBonuses.add(allBonuses.find(bonus => bonus === 'explode'));
+        if (player.hasShield) usedBonuses.add(allBonuses.find(bonus => bonus === 'shield'));
+        if (player.hasRegen) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen'));
+        if (player.hasChainLightning) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning'));
+        if (player.hasDroneKamikaze) usedBonuses.add(allBonuses.find(bonus => bonus === 'droneKamikaze'));
 
-        if(player.lucky == 40) usedBonuses.add(allBonuses.find(bonus => bonus === 'lucky'));
+        if (player.lucky == 40) usedBonuses.add(allBonuses.find(bonus => bonus === 'lucky'));
 
         // Выбираем 3 уникальных бонуса
         while (selected.length < 4) {
             const randomBonus = this.getRandomBonus(allBonuses, usedBonuses);
-            
+
             if (!usedBonuses.has(randomBonus)) {
                 const bonus = this.bonusTypes[randomBonus];
-                
+
                 usedBonuses.add(randomBonus);
                 selected.push({ key: randomBonus, ...bonus });
             }
         }
-        
+
         return selected;
     }
 
@@ -527,19 +473,20 @@ class BonusManager {
     selectBonus(bonusKey) {
         const bonus = this.bonusTypes[bonusKey];
         bonus.apply(player);
-        
+
         // Очищаем текущие бонусы
         this.currentBonuses = [];
-        
+
         // Скрываем экран выбора
         document.getElementById('bonusScreen').style.display = 'none';
         gameRunning = true;
         lastTime = performance.now();
         requestAnimationFrame(gameLoop);
-        
+
         // Показываем уведомление о получении бонуса
         this.showBonusNotification(bonus);
         statManager.bonusesCollect++;
+        soundManager.playBonus();
     }
 
     // Функция показа уведомления
@@ -561,9 +508,9 @@ class BonusManager {
             animation: fadeInOut 2s ease-in-out;
         `;
         notification.textContent = `${bonus.icon} ${bonus.name} получен!`;
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.remove();
         }, 1000);

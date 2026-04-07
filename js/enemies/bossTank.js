@@ -6,13 +6,13 @@ class BossTank {
         this.width = 80;
         this.height = 80;
         this.speed = 90;
-        this.health = 2000;
-        this.maxHealth = 2000;
-        this.damage = 100;
+        this.health = 3000;
+        this.maxHealth = 3000;
+        this.damage = 200;
         this.angle = Math.random() * Math.PI * 2;
         this.bullets = [];
         this.lastShot = 0;
-        this.shotCooldown = 800;
+        this.shotCooldown = 500;
         this.active = true;
         
         // Состояние босса
