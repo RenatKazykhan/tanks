@@ -181,9 +181,7 @@
             <div class="victory-subtitle">Поздравляем! Вы прошли все волны!</div>
             <div>Ваш счет: <span id="victoryScore">0</span></div>
             <button onclick="resetGame()" class="victory-button">Играть снова</button>
-            <table class="stats-table">
-                <!-- Здесь можно продублировать статистику из gameOver -->
-            </table>
+            <button onclick="backToMenu()" class="menu-btn">В главное меню</button>
         </div>
         <div id="pauseScreen" style="display: none;">
             <div class="pause-content">
@@ -246,6 +244,7 @@
     <script src="js/bullets/iceBullet.js"></script>
     <script src="js/bullets/poisonBullet.js"></script>
     <script src="js/bullets/kamikazeDrone.js"></script>
+    <script src="js/bullets/lightningBullet.js"></script>
     <script src="js/entyties/powerUp.js"></script>
     <script src="js/playerTank.js"></script>
     <script src="js/enemies/enemyTank.js"></script>
@@ -277,6 +276,7 @@
     <script src="js/managers/eventHandlers.js"></script>
     <script src="js/managers/statManager.js"></script>
     <script src="js/managers/bonusManager.js"></script>
+    <script src="js/managers/waeponManager.js"></script>
     <script src="js/managers/checkCollisionsManager.js"></script>
     <script src="js/main.js"></script>
 </body>

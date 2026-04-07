@@ -145,6 +145,8 @@ class PlayerTank {
 
         // Обновляем эффекты телепортации
         this.updateTeleportEffects(deltaTime);
+        // Автоматическая активация цепной молнии
+        this.updateChainLightning();
 
         // Телепортация по нажатию клавиши (например, Space или E)
         if (keys['e'] || keys['E']) {
@@ -1829,6 +1831,83 @@ class PlayerTank {
         soundManager.playTeleport();
     }
 
+    // Обновление цепной молнии
+    updateChainLightning() {
+        if (!this.hasChainLightning) return;
+
+        const now = Date.now();
+        
+        // Проверяем, прошло ли время перезарядки
+        if (!this.lastLightningTime || now - this.lastLightningTime >= this.chainLightningCooldown) {
+            // Проверяем, есть ли враги в радиусе
+            if (this.checkEnemiesInRange()) {
+                this.shootChainLightning();
+                this.lastLightningTime = now;
+            }
+        }
+    }
+
+    // Проверка наличия врагов в радиусе действия молнии
+    checkEnemiesInRange() {
+        if (!enemies || enemies.length === 0) return false;
+
+        for (let enemy of enemies) {
+            if (enemy.active) {
+                const distance = Math.sqrt(Math.pow(enemy.x - this.x, 2) + Math.pow(enemy.y - this.y, 2));
+                if (distance <= this.chainLightningBounceRange) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Метод для стрельбы цепной молнией
+    shootChainLightning() {
+        if (!this.hasChainLightning) return;
+
+        // Создаем молнию от позиции игрока
+        const lightning = new LightningBullet(
+            this.x, 
+            this.y, 
+            this.chainLightningDamage, 
+            'player',
+            this.maxChainTargets,
+            this.chainLightningBounceRange
+        );
+
+        // Добавляем в специальный массив для молний
+        if (!this.lightningBullets) {
+            this.lightningBullets = [];
+        }
+        this.lightningBullets.push(lightning);
+
+        // Воспроизводим звук
+        if (typeof soundManager !== 'undefined') {
+            soundManager.playLightning();
+        }
+
+        // Добавляем визуальный эффект в месте игрока
+        this.createLightningEffect();
+    }
+
+    // Визуальный эффект при активации молнии
+    createLightningEffect() {
+        // Создаем частицы вокруг игрока
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const particleX = this.x + Math.cos(angle) * 30;
+            const particleY = this.y + Math.sin(angle) * 30;
+            
+            particles.push(new Particle(particleX, particleY, '#ffff00', {
+                vx: Math.cos(angle) * 5,
+                vy: Math.sin(angle) * 5,
+                life: 500,
+                size: 3
+            }));
+        }
+    }
+    
     createTeleportEffect(x, y, type) {
         const particleCount = 20;
         const colors = type === 'departure' ?
@@ -2146,6 +2225,36 @@ class PlayerTank {
             life: 1.0,
             width: 3
         });
+    }
+
+     // В методе Shooting или подобном
+    shootChainLightning() {
+        if (!this.hasChainLightning || this.lastLightningTime + this.chainLightningCooldown > Date.now()) {
+            return;
+        }
+
+        // Создаем молнию от позиции игрока
+        const lightning = new LightningBullet(
+            this.x, 
+            this.y, 
+            this.chainLightningDamage, 
+            'player',
+            this.maxChainTargets,
+            this.chainLightningBounceRange
+        );
+
+        // Добавляем в специальный массив для молний
+        if (!this.lightningBullets) {
+            this.lightningBullets = [];
+        }
+        this.lightningBullets.push(lightning);
+
+        this.lastLightningTime = Date.now();
+        
+        // Воспроизводим звук
+        if (typeof soundManager !== 'undefined') {
+            soundManager.playLightning();
+        }
     }
 
     // Обновление дронов-камикадзе

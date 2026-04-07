@@ -116,7 +116,7 @@ let enemySpawnInterval = 5000;
 let powerUps = [];
 let powerUpSpawnTimer = 0;
 let walls = [];
-let tankIndex = 0;
+let tankIndex = 250;
 let regenTimer = 0;
 // переменные для отслеживания времени
 let lastTime = 0;
@@ -126,7 +126,14 @@ let isVictory = false;
 
 // Основной игровой цикл
 function gameLoop() {
-    if (!gameRunning) return;
+    if (!gameRunning) {
+        if (isVictory) {
+            // Если игра окончена победой, не продолжаем цикл
+            return;
+        }
+        return;
+    }
+
     const currentTime = performance.now();
     // Вычисляем дельта-время в секундах
     deltaTime = (currentTime - lastTime) / 1000;
@@ -268,6 +275,19 @@ function gameLoop() {
         });
     });
 
+    // Обновление молний игрока
+    if (player.lightningBullets) {
+        player.lightningBullets = player.lightningBullets.filter(lightning => {
+            if (lightning.active) {
+                lightning.update(deltaTime);
+                
+                // Статистика засчитывается при попадании
+                return true;
+            }
+            return false;
+        });
+    }
+
     updateCamera();
 
     // Очистка canvas
@@ -290,6 +310,13 @@ function gameLoop() {
     powerUps.forEach(powerUp => powerUp.draw());
     walls.forEach(wall => biomeManager.drawWall(wall));
     player.draw();
+
+    // Рисование молний
+    if (player.lightningBullets) {
+        player.lightningBullets.forEach(lightning => {
+            lightning.draw();
+        });
+    }
 
     // Обновление и отрисовка частиц
     particles = particles.filter(particle => {
@@ -334,7 +361,7 @@ function gameLoop() {
 
     // XP-бар
     xpManager.draw();
-
+    checkVictoryCondition();
     requestAnimationFrame(gameLoop);
 }
 
@@ -663,11 +690,34 @@ function spawnEnemy() {
         document.getElementById('waveValue').textContent = 15;
         enemies.push(new BossTank(x, y));
     }
-    else if (tankIndex > 270 && enemies.length === 0) {
-        showVictory();
-        gameRunning = false;
+    else if (tankIndex >= 300) {
+        // Проверка победы - все враги убиты и limit достигнут
+        if (enemies.length === 0 && !isVictory) {
+            showVictory();
+            isVictory = true;
+            gameRunning = false;
+            return; // Прерываем спавн
+        }
     }
     tankIndex++;
+
+    // Проверка победы после каждого спавна
+    checkVictoryCondition();
+}
+
+// Добавляем отдельную функцию проверки победы
+function checkVictoryCondition() {
+    // Проверяем, достигнут ли лимит врагов и нет ли активных врагов
+    if (tankIndex >= 250 && enemies.length === 0 && !isVictory) {
+        // Дополнительная проверка - длительная пауза без спавна
+        setTimeout(() => {
+            if (enemies.length === 0 && !isVictory) {
+                showVictory();
+                isVictory = true;
+                gameRunning = false;
+            }
+        }, 2000); // Ждем 2 секунды для уверенности
+    }
 }
 
 function startGame() {
@@ -681,6 +731,7 @@ function startGame() {
 }
 
 function resetGame() {
+    isVictory = false;
     document.getElementById('pauseScreen').style.display = 'none';
     document.getElementById('pauseBtn').disabled = false;
     player.x = canvas.width / 2;
@@ -755,6 +806,8 @@ function resetGame() {
     updateUIManager.updateScore();
     updateUIManager.updateStatsDisplayMainMenu();
     document.getElementById('gameOver').style.display = 'none';
+    // Скрываем экран победы
+    document.getElementById('victory').style.display = 'none';
     lastTime = performance.now();
     soundManager.resume();
     gameLoop();
@@ -927,19 +980,41 @@ function drawMinimap() {
 }
 
 function showVictory() {
+    if (isVictory) return; // Предотвращаем повторный вызов
+    
+    console.log('Показываем экран победы'); // Для отладки
+    
     // Скрываем игровые элементы
-    document.getElementById('gameContainer').style.display = 'none';
     document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('pauseScreen').style.display = 'none';
+    document.getElementById('bonusScreen').style.display = 'none';
 
     // Показываем экран победы
-    document.getElementById('victory').style.display = 'block';
+    const victoryScreen = document.getElementById('victory');
+    victoryScreen.style.display = 'block';
     document.getElementById('victoryScore').textContent = score;
 
     // Создаем эффект конфетти
     createConfetti();
 
+    // Обновляем статистику
+    statManager.update();
+    
+    // Добавляем очки за победу
+    points += 1000;
+    localStorage.setItem('tankGamePoints', points);
+    
+    // Обновляем рекорд если нужно
+    if (score > recordScore) {
+        recordScore = score;
+        localStorage.setItem('tankGameRecord', recordScore);
+        document.getElementById('recordScoreValue').textContent = recordScore;
+    }
+
     // Воспроизводим звук победы (если есть)
-    // playVictorySound();
+    if (typeof soundManager !== 'undefined') {
+        // soundManager.playVictory(); // Нужно добавить в звуковой менеджер
+    }
 }
 
 function createConfetti() {

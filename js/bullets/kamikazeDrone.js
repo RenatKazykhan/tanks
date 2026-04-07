@@ -110,6 +110,9 @@ class KamikazeDrone {
                 
                 if (distance <= this.explosionRadius) {
                     enemy.takeDamage(this.damage);
+                    if (!enemy.active) {
+                        enemyDead(enemy.x, enemy.y); // создает взрывы
+                    }
                 }
             });
         } else {
