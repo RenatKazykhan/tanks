@@ -8,7 +8,7 @@ class BossTank {
         this.speed = 90;
         this.health = 3000;
         this.maxHealth = 3000;
-        this.damage = 200;
+        this.damage = 100;
         this.angle = Math.random() * Math.PI * 2;
         this.bullets = [];
         this.lastShot = 0;
@@ -120,11 +120,11 @@ class BossTank {
         // Смена состояния ИИ
         if (now - this.stateChangeTime > 3000) {
             const rand = Math.random();
-            if (distance < 100) {
+            if (distance < 300) {
                 this.aiState = 'retreating';
-            } else if (distance > 300) {
+            } else if (distance > 700) {
                 this.aiState = 'hunting';
-            } else if (rand < 0.3) {
+            } else if (rand < 0.8) {
                 this.aiState = 'circling';
                 this.circleAngle = Math.atan2(dy, dx) + Math.PI / 2;
             } else {
@@ -133,7 +133,7 @@ class BossTank {
             this.stateChangeTime = now;
         }
         
-        // Выполнение действий ИИ
+        // Выполнение действий ИИ`
         switch (this.aiState) {
             case 'hunting':
                 this.targetX = playerX;

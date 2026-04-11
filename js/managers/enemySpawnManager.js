@@ -1,0 +1,146 @@
+class EnemySpawnManager {
+    constructor(worldWidth, worldHeight) {
+        this.worldWidth = worldWidth;
+        this.worldHeight = worldHeight;
+        this.enemySpawnTimer = 0;
+        this.enemySpawnInterval = 2000;
+        this.tankIndex = 0;
+        this.maxEnemies = 250;
+    }
+
+    reset() {
+        this.enemySpawnTimer = 0;
+        this.enemySpawnInterval = 2000;
+        this.tankIndex = 0;
+    }
+
+    spawnEnemy(currentStage, biomeManager, stage2Zones, enemies) {
+        if (currentStage === 2) {
+            return this.handleStage2Spawning(stage2Zones, enemies);
+        } else {
+            return this.handleStage1Spawning(biomeManager);
+        }
+    }
+
+    handleStage2Spawning(stage2Zones, enemies) {
+        stage2Zones.forEach(zone => {
+            if (!zone.activated) {
+                const distance = Math.sqrt(Math.pow(player.x - zone.x, 2) + Math.pow(player.y - zone.y, 2));
+                if (distance <= zone.radius) {
+                    zone.activated = true;
+                    enemies.push(...zone.enemies);
+                }
+            }
+        });
+        return null;
+    }
+
+    handleStage1Spawning(biomeManager) {
+        const side = Math.floor(Math.random() * 4);
+        let x, y;
+
+        switch (side) {
+            case 0: 
+                x = Math.random() * this.worldWidth;
+                y = -50;
+                break;
+            case 1: 
+                x = this.worldWidth + 50;
+                y = Math.random() * this.worldHeight;
+                break;
+            case 2: 
+                x = Math.random() * this.worldWidth;
+                y = this.worldHeight + 50;
+                break;
+            case 3: 
+                x = -50;
+                y = Math.random() * this.worldHeight;
+                break;
+        }
+
+        const newBiome = biomeManager.getBiomeForWave(this.tankIndex);
+        biomeManager.setBiome(newBiome);
+
+        let enemy = null;
+        
+        if (this.tankIndex <= 15) {
+            document.getElementById('waveValue').textContent = 1;
+            enemy = new Wave1(x, y);
+        } else if (this.tankIndex <= 30) {
+            document.getElementById('waveValue').textContent = 2;
+            enemy = new IceTank(x, y);
+        } else if (this.tankIndex <= 45) {
+            document.getElementById('waveValue').textContent = 2;
+            enemy = new SmokeTank(x, y);
+        } else if (this.tankIndex <= 60) {
+            document.getElementById('waveValue').textContent = 3;
+            enemy = new BerserkTank(x, y);
+        } else if (this.tankIndex <= 75) {
+            document.getElementById('waveValue').textContent = 4;
+            enemy = new KamikazeTank(x, y);
+        } else if (this.tankIndex <= 90) {
+            document.getElementById('waveValue').textContent = 5;
+            enemy = new MinerTank(x, y);
+        } else if (this.tankIndex <= 105) {
+            document.getElementById('waveValue').textContent = 6;
+            enemy = new TeleportTank(x, y);
+        } else if (this.tankIndex <= 120) {
+            document.getElementById('waveValue').textContent = 7;
+            enemy = new ShieldTank(x, y);
+        } else if (this.tankIndex <= 135) {
+            document.getElementById('waveValue').textContent = 8;
+            enemy = new SmartTank(x, y);
+        } else if (this.tankIndex <= 150) {
+            document.getElementById('waveValue').textContent = 9;
+            enemy = new MachineGunTank(x, y);
+        } else if (this.tankIndex <= 170) {
+            document.getElementById('waveValue').textContent = 10;
+            enemy = new HeavyTank(x, y);
+        } else if (this.tankIndex <= 190) {
+            document.getElementById('waveValue').textContent = 11;
+            enemy = new RocketTank(x, y);
+        } else if (this.tankIndex <= 210) {
+            document.getElementById('waveValue').textContent = 12;
+            enemy = new StrongEnemyTank(x, y);
+        } else if (this.tankIndex <= 230) {
+            document.getElementById('waveValue').textContent = 13;
+            enemy = new Sniper(x, y);
+        } else if (this.tankIndex <= 240) {
+            document.getElementById('waveValue').textContent = 14;
+            enemy = new StrongEnemyTank(x, y);
+        } else if (this.tankIndex <= 280) {
+            document.getElementById('waveValue').textContent = 15;
+            enemy = new BossTank(x, y);
+        }
+
+        this.tankIndex++;
+        return enemy;
+    }
+
+    update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, checkVictoryCallback) {
+        if (currentStage === 2) {
+            this.handleStage2Spawning(stage2Zones, enemies);
+            return;
+        }
+
+        this.enemySpawnTimer += deltaTime * 1000;
+        if (this.enemySpawnTimer > this.enemySpawnInterval) {
+            if (this.tankIndex < this.maxEnemies) {
+                const enemy = this.handleStage1Spawning(biomeManager);
+                if (enemy) {
+                    enemies.push(enemy);
+                }
+            }
+            this.enemySpawnTimer = 0;
+            this.enemySpawnInterval = Math.max(1000, this.enemySpawnInterval - 50);
+        }
+
+        if (this.tankIndex >= this.maxEnemies && enemies.length === 0) {
+            setTimeout(() => {
+                if (enemies.length === 0) {
+                    checkVictoryCallback();
+                }
+            }, 3000);
+        }
+    }
+}

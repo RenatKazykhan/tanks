@@ -11,7 +11,7 @@ canvas.width = window.innerWidth - 100;
 canvas.height = window.innerHeight - 115;
 
 // Размеры мира
-const WORLD_WIDTH = 3000;
+const WORLD_WIDTH = 3660;
 const WORLD_HEIGHT = 3000;
 
 // Камера
@@ -80,6 +80,8 @@ const checkCollisionManager = new CheckCollisionManager();
 const soundManager = new SoundManager();
 const xpManager = new XPManager();
 const biomeManager = new BiomeManager();
+const enemySpawnManager = new EnemySpawnManager(WORLD_WIDTH, WORLD_HEIGHT);
+const mapManager = new MapManager(WORLD_WIDTH, WORLD_HEIGHT);
 
 // Тряска камеры
 const cameraShake = {
@@ -111,12 +113,9 @@ let particles = [];
 let keys = {};
 let mouseX = 0;
 let mouseY = 0;
-let enemySpawnTimer = 0;
-let enemySpawnInterval = 5000;
 let powerUps = [];
 let powerUpSpawnTimer = 0;
 let walls = [];
-let tankIndex = 250;
 let regenTimer = 0;
 // переменные для отслеживания времени
 let lastTime = 0;
@@ -163,12 +162,11 @@ function gameLoop() {
     }
 
     // Спавн врагов
-    enemySpawnTimer += deltaTime * 1000;
-    if (enemySpawnTimer > enemySpawnInterval) {
-        spawnEnemy();
-        enemySpawnTimer = 0;
-        enemySpawnInterval = Math.max(1000, enemySpawnInterval - 50);
-    }
+     enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
+        showVictory();
+        isVictory = true;
+        gameRunning = false;
+    });
 
     // Регенерация здоровья игрока
     regenTimer += deltaTime * 1000;
@@ -235,32 +233,35 @@ function gameLoop() {
     if (currentStage === 2) {
         // Обновляем турели
         stage2Turrets.forEach(turret => {
-            turret.update(player.x, player.y, deltaTime);
+            if(turret.active == true) {
+                turret.update(player.x, player.y, deltaTime);
             
-            // Проверяем столкновения пуль турелей с игроком
-            turret.bullets.forEach(bullet => {
-                if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
-                    player.takeDamage(bullet.damage, bullet.x, bullet.y);
-                    bullet.active = false;
-                }
-            });
-            
-            // Проверяем столкновения пуль игрока с турелями
-            player.bullets.forEach(bullet => {
-                if (bullet.active && checkCollisionManager.checkCollision(bullet, turret, bullet.radius, turret.radius)) {
-                    turret.takeDamage(bullet.damage);
-                    bullet.active = false;
-                }
-            });
-        });
-        
-        // Проверяем столкновения турелей со стенами
-        stage2Turrets.forEach(turret => {
-            walls.forEach(wall => {
-                if (wall.checkCollisionWithRect(turret.x, turret.y, turret.width, turret.height)) {
-                    // Турели встроены в стены, но можно добавить логику при необходимости
-                }
-            });
+                turret.bullets = turret.bullets.filter(bullet => {
+                    let hitWall = false;
+                    walls.forEach(wall => {
+                        if (wall.checkCollisionWithCircle(bullet.x, bullet.y, bullet.radius)) {
+                            hitWall = true;
+                        }
+                    });
+                    return bullet.active && !hitWall;
+                });
+
+                // Проверяем столкновения пуль турелей с игроком
+                turret.bullets.forEach(bullet => {
+                    if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
+                        player.takeDamage(bullet.damage, bullet.x, bullet.y);
+                        bullet.active = false;
+                    }
+                });
+                
+                // Проверяем столкновения пуль игрока с турелями
+                player.bullets.forEach(bullet => {
+                    if (bullet.active && checkCollisionManager.checkCollision(bullet, turret, bullet.radius, turret.radius)) {
+                        turret.takeDamage(bullet.damage);
+                        bullet.active = false;
+                    }
+                });
+            }
         });
     }
 
@@ -433,190 +434,9 @@ function handleEnergyBlast(blastData) {
     });
 }
 
-function createMapFromLayout(layout) {
-    walls = [];
-    stage2Enemies = [];
-    stage2Turrets = [];
-    stage2Zones = [];
-    
-    const cellSize = 60;
-    
-    for (let y = 0; y < layout.length; y++) {
-        for (let x = 0; x < layout[y].length; x++) {
-            const cell = layout[y][x];
-            const posX = x * cellSize;
-            const posY = y * cellSize;
-
-            switch (cell) {
-                case '#': // Стена
-                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize, cellSize));
-                    break;
-                    
-                case 'T': // Турель
-                    stage2Turrets.push(new Turret(posX + cellSize / 2, posY + cellSize / 2));
-                    break;
-                    
-                case 'B': // Босс (только для финального)
-                    stage2Enemies.push(new BossTank(posX + cellSize / 2, posY + cellSize / 2));
-                    stage2Exit = { x: posX, y: posY - cellSize, width: cellSize, height: cellSize };
-                    break;
-                    
-                case 'A': // Зона активации врагов
-                    stage2Zones.push({
-                        x: posX + cellSize / 2,
-                        y: posY + cellSize / 2,
-                        radius: 100,
-                        activated: false,
-                        enemies: [
-                            new EnemyTank(posX + cellSize / 2 - 30, posY + cellSize / 2),
-                            new EnemyTank(posX + cellSize / 2 + 30, posY + cellSize / 2)
-                        ]
-                    });
-                    break;
-                    
-                case 'P': // Начальная позиция игрока
-                    player.x = posX + cellSize / 2;
-                    player.y = posY + cellSize / 2;
-                    break;
-                    
-                case 'E': // Выход из уровня
-                    stage2Exit = { x: posX, y: posY, width: cellSize, height: cellSize };
-                    break;
-                    
-                case 'H': // Аптечка
-                    powerUps.push(new PowerUp(posX + cellSize / 2, posY + cellSize / 2, 'health'));
-                    break;
-            }
-        }
-    }
-}
-
-// Пример использования с разными макетами
-const maps = {
-    level1: [
-        '                                                           ',
-        ' E                                                        E',
-        '                      #                                    ',
-        '                                                           ',
-        '                                                           ',
-        '     #   #  #         ####        #        #         ##    ',
-        '              #                                            ',
-        '       #      #       #   ###               #      #       ',
-        '       #      #                     #       #      #       ',
-        '                                                           ',
-        '   ##                               #      #    #          ',
-        '          #    #                           #               ',
-        '     E                ###   #### #                   E     ',
-        '          #    #                                #          ',
-        '                                             #             ',
-        '                                                           ',
-        '      ###  ##                                   #    ###   ',
-        '    #         #                               #        #   ',
-        '              #                                        #   ',
-        '              #          #      #             #            ',
-        '    #         #                                        #   ',
-        '      ###  ##                                 ##           ',
-        '                                                           ',
-        '                                                           ',
-        '      ####        ### #                             # ## ##',
-        '                         #      #                          ',
-        '                                                           ',
-        '                         #      #                          ',
-        '                                                           ',
-        '                            P                              ',
-        '                                                           ',
-        '                         #      #                          ',
-        '                                                           ',
-        '                         #      #                          ',
-        '  # # # # # ##  ###                 ###  #  #     # ## # ##',
-        '                                                           ',
-        '                         #      #                          ',
-        '    ###      ##                 #             ##      ##   ',
-        '                                                           ',
-        '                         #                  #              ',
-        '                                                       #   ',
-        '                                                       #   ',
-        '    ####    ###                                ##   #  #   ',
-        '                                                           ',
-        ' ####                                                ##  ##',
-        '          #    #                         #    #            ',
-        '     E                #           #                 E      ',
-        '          #    #      #           #      #    #            ',
-        ' ####     #    #                         #    #      ##  ##',
-        '                     #           #                         ',
-        '       #      #      #             #       #       #       ',
-        '       #      #                             #      #       ',
-        '       #      #                             #      #       ',
-        '       #      #                                          ##',
-        '                                 #                         ',
-        '                                                           ',
-        '                     ####        ####                      ',
-        ' E                                                        E',
-        '                                                           '
-    ],
-    level2: [
-        '############################################################',
-        '#..........................................................#',
-        '#..T....#.......B........#...............................#',
-        '#.......#.................#...............................#',
-        '#.......#.................#....A..........................#',
-        '#.......#....#..#....#....#...............................#',
-        '#.......#....#..#....#....#...............................#',
-        '#.......#######..#######..#...............................#',
-        '#.......#.................#...............................#',
-        '#.......#.................#................................',
-        '#.......#.....P.........#.#...............................#',
-        '#.......#.................#...............................#',
-        '#.......#.......#######...#...............................#',
-        '#.......#.......#.....#...#...............................#',
-        '#.......#.......#.....#...#...............................#',
-        '#.......#####...#.....#...#......T........................#',
-        '#.........#.....#.....#...#...............................#',
-        '#.........#.....#######...#...............................#',
-        '#.........#...............#...............................#',
-        '#.........#...............#...............................#',
-        '#.........#.....#####.....#...............................#',
-        '#.........#.....#...#.....#...............................#',
-        '#.........#.....#...#.....#....A..........................#',
-        '#.........#.....#...#.....#...............................#',
-        '#.........#.....#...#.....#...............................#',
-        '#.........#.....#####.....#...............................#',
-        '#.........#...............#...............................#',
-        '#.........#...............#...............................#',
-        '#.........#...............#...............................#',
-        '###########......#......##########........................#',
-        '#................#.............................T............#',
-        '#................#.............................B............#',
-        '#................#..........................................#',
-        '#................#..........................................#',
-        '#................#..........................................#',
-        '#.............####..........................................#',
-        '#.............#.............................................#',
-        '#.............#.........B..................................#',
-        '#.............#.............................................#',
-        '#.............#.............................................#',
-        '#........T....#.............................................#',
-        '#.............#.............................................#',
-        '#.............#.............................................#',
-        '#..................#......#...............................#',
-        '#..................#......#...............................#',
-        '#..................#......#...............................#',
-        '#.....A............#......#...............................#',
-        '############....#####....##################################',
-        '#..........................................................#',
-        '#..........................................................#',
-        '#..........................................................#',
-        '#.................E..........................................#',
-        '#..........................................................#',
-        '############################################################'
-    ]
-};
-
-// Обновленная функция createWalls для использования макетов
 function createWalls() {
-    // Используем макет вместо ручного создания стен
-    const currentMap = maps.level1; // Можно менять на другие карты
-    createMapFromLayout(currentMap);
+    const mapKey = mapManager.getMapKey(currentStage);
+    return mapManager.createMapFromLayout(mapKey, player, walls, powerUps, stage2Zones, stage2Turrets, stage2Enemies);
 }
 
 // Функция улучшения характеристик
@@ -690,134 +510,10 @@ function enemyDead(x, y) {
     }
 }
 
-// Спавн врагов
-function spawnEnemy() {
-
-     if (currentStage === 2) {
-        // Проверяем зоны активации
-        stage2Zones.forEach(zone => {
-            if (!zone.activated) {
-                const distance = Math.sqrt(Math.pow(player.x - zone.x, 2) + Math.pow(player.y - zone.y, 2));
-                if (distance <= zone.radius) {
-                    zone.activated = true;
-                    enemies.push(...zone.enemies);
-                }
-            }
-        });
-    }
-    else {
-        const side = Math.floor(Math.random() * 4);
-        let x, y;
-
-        switch (side) {
-            case 0: // сверху
-                x = Math.random() * WORLD_WIDTH;
-                y = -50;
-                break;
-            case 1: // справа
-                x = WORLD_WIDTH + 50;
-                y = Math.random() * WORLD_HEIGHT;
-                break;
-            case 2: // снизу
-                x = Math.random() * WORLD_WIDTH;
-                y = WORLD_HEIGHT + 50;
-                break;
-            case 3: // слева
-                x = 50;
-                y = Math.random() * WORLD_HEIGHT;
-                break;
-        }
-
-        // Автоматическая смена биома
-        const newBiome = biomeManager.getBiomeForWave(tankIndex);
-        biomeManager.setBiome(newBiome);
-
-        if (tankIndex <= 15) {
-            document.getElementById('waveValue').textContent = 1;
-            enemies.push(new Wave1(x, y));
-        }
-        else if (tankIndex <= 30) {
-            document.getElementById('waveValue').textContent = 2;
-            enemies.push(new IceTank(x, y));
-        }
-        else if (tankIndex <= 45) {
-            document.getElementById('waveValue').textContent = 2;
-            enemies.push(new SmokeTank(x, y));
-        }
-        else if (tankIndex <= 60) {
-            document.getElementById('waveValue').textContent = 3;
-            enemies.push(new BerserkTank(x, y));
-        }
-        else if (tankIndex <= 75) {
-            document.getElementById('waveValue').textContent = 4;
-            enemies.push(new KamikazeTank(x, y));
-        }
-        else if (tankIndex <= 90) {
-            document.getElementById('waveValue').textContent = 5;
-            enemies.push(new MinerTank(x, y));
-        }
-        else if (tankIndex <= 105) {
-            document.getElementById('waveValue').textContent = 6;
-            enemies.push(new TeleportTank(x, y));
-        }
-        else if (tankIndex <= 120) {
-            document.getElementById('waveValue').textContent = 7;
-            enemies.push(new ShieldTank(x, y));
-        }
-        else if (tankIndex <= 135) {
-            document.getElementById('waveValue').textContent = 8;
-            enemies.push(new SmartTank(x, y));
-        }
-        else if (tankIndex <= 150) {
-            document.getElementById('waveValue').textContent = 9;
-            enemies.push(new MachineGunTank(x, y));
-        }
-        else if (tankIndex <= 170) {
-            document.getElementById('waveValue').textContent = 10;
-            enemies.push(new HeavyTank(x, y));
-            //enemies.push(new PoisonTank(x, y));
-        }
-        else if (tankIndex <= 190) {
-            document.getElementById('waveValue').textContent = 11;
-            enemies.push(new RocketTank(x, y));
-        }
-        else if (tankIndex <= 210) {
-            document.getElementById('waveValue').textContent = 12;
-            enemies.push(new StrongEnemyTank(x, y));
-        }
-        else if (tankIndex <= 230) {
-            document.getElementById('waveValue').textContent = 13;
-            enemies.push(new Sniper(x, y));
-        }
-        else if (tankIndex <= 240) {
-            document.getElementById('waveValue').textContent = 14;
-            enemies.push(new StrongEnemyTank(x, y));
-        }
-        else if (tankIndex <= 280) {
-            document.getElementById('waveValue').textContent = 15;
-            enemies.push(new BossTank(x, y));
-        }
-        else if (tankIndex >= 280) {
-            // Проверка победы - все враги убиты и limit достигнут
-            if (enemies.length === 0 && !isVictory) {
-                showVictory();
-                isVictory = true;
-                gameRunning = false;
-                return; // Прерываем спавн
-            }
-        }
-
-    }
-    tankIndex++;
-
-    // Проверка победы после каждого спавна
-    checkVictoryCondition();
-}
-
 // Добавляем отдельную функцию проверки победы
 function checkVictoryCondition() {
     // Проверяем, достигнут ли лимит врагов и нет ли активных врагов
-    if (currentStage === 1 && tankIndex >= 250 && enemies.length === 0 && !isVictory) {
+    if (currentStage === 1 && enemySpawnManager.tankIndex >= enemySpawnManager.maxEnemies && enemies.length === 0 && !isVictory) {
         // Дополнительная проверка - длительная пауза без спавна
         setTimeout(() => {
             if (enemies.length === 0 && !isVictory) {
@@ -1051,14 +747,11 @@ function resetGame() {
     keys.length = 0;
 
     document.getElementById('waveValue').textContent = 1;
-
+    enemySpawnManager.reset();
     enemies = [];
     powerUps = [];
     score = 0;
-    enemySpawnTimer = 0;
-    enemySpawnInterval = 3000;
     powerUpSpawnTimer = 0;
-    tankIndex = 0;
     gameRunning = true;
     damageFlash = 0;
     createWalls();
@@ -1088,8 +781,7 @@ function resetGame() {
     
     // Используем соответствующую карту
     const mapKey = currentStage === 2 ? 'level2' : 'level1';
-    const currentMap = maps[mapKey];
-    createMapFromLayout(currentMap);
+    mapManager.createMapFromLayout(mapKey, player, walls, powerUps, stage2Zones, stage2Turrets, stage2Enemies);
     
     // Устанавливаем биом для этапа 2
     if (currentStage === 2) {

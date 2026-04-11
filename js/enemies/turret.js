@@ -8,15 +8,15 @@ class Turret {
         this.baseAngle = Math.random() * Math.PI * 2;
         this.currentAngle = this.baseAngle;
         this.rotationSpeed = rotationSpeed;
-        this.health = 50;
-        this.maxHealth = 50;
+        this.health = 500;
+        this.maxHealth = 500;
         this.active = true;
         this.bullets = [];
         this.lastShot = Date.now();
-        this.shotCooldown = 2000;
-        this.damage = 10;
-        this.bulletSpeed = 200;
-        this.detectionRange = 300;
+        this.shotCooldown = 1000;
+        this.damage = 100;
+        this.bulletSpeed = 500;
+        this.detectionRange = 500;
         this.rotationMode = 'rotating'; // 'rotating' или 'tracking'
     }
 
@@ -27,16 +27,41 @@ class Turret {
 
         if (distance <= this.detectionRange) {
             this.rotationMode = 'tracking';
-            const targetAngle = Math.atan2(playerY - this.y, playerX - this.x);
             
-            // Плавный поворот к цели
-            let angleDiff = targetAngle - this.currentAngle;
-            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-            this.currentAngle += angleDiff * 0.05;
+            // Расчитываем скорость игрока на основе последней позиции
+            if (!this.lastPlayerPos) {
+                this.lastPlayerPos = { x: playerX, y: playerY, time: Date.now() };
+            }
+            
+            const now = Date.now();
+            const timeDiff = (now - this.lastPlayerPos.time) / 1000; // в секундах
+            
+            if (timeDiff > 0.016) { // Обновляем не чаще чем 60 FPS
+                const playerVelocityX = (playerX - this.lastPlayerPos.x) / timeDiff;
+                const playerVelocityY = (playerY - this.lastPlayerPos.y) / timeDiff;
+                
+                // Расчет упреждения
+                const bulletTravelTime = distance / this.bulletSpeed;
+                const predictedX = playerX + playerVelocityX * bulletTravelTime;
+                const predictedY = playerY + playerVelocityY * bulletTravelTime;
+                
+                const targetAngle = Math.atan2(predictedY - this.y, predictedX - this.x);
+                
+                // Обновляем последнюю позицию
+                this.lastPlayerPos = { x: playerX, y: playerY, time: now };
+                
+                this.currentAngle = targetAngle; // Резкий поворот для точного упреждения
+            }
 
             // Стрельба при наведении на цель
-            if (Math.abs(angleDiff) < 0.1 && Date.now() - this.lastShot > this.shotCooldown) {
+            const dx = playerX - this.x;
+            const dy = playerY - this.y;
+            const currentTargetAngle = Math.atan2(dy, dx);
+            let angleDiff = currentTargetAngle - this.currentAngle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+            if (Math.abs(angleDiff) < 0.2 && Date.now() - this.lastShot > this.shotCooldown) {
                 this.shoot();
                 this.lastShot = Date.now();
             }
@@ -52,7 +77,7 @@ class Turret {
         });
     }
 
-    shoot() {
+    shoot(targetX = null, targetY = null) {
         const bulletX = this.x + Math.cos(this.currentAngle) * 30;
         const bulletY = this.y + Math.sin(this.currentAngle) * 30;
         
@@ -109,6 +134,27 @@ class Turret {
         ctx.fillRect(40, -10, 5, 20);
 
         ctx.restore();
+
+        // Полоска здоровья
+        const healthBarWidth = 50;
+        const healthBarHeight = 6;
+        const healthBarY = this.y - this.radius - 15;
+        
+        // Фон полоски здоровья
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(this.x - healthBarWidth/2, healthBarY, healthBarWidth, healthBarHeight);
+        
+        // Полоска здоровья
+        const healthPercent = Math.max(0, this.health / this.maxHealth);
+        const healthColor = healthPercent > 0.6 ? '#00ff00' : 
+                           healthPercent > 0.3 ? '#ffff00' : '#ff0000';
+        ctx.fillStyle = healthColor;
+        ctx.fillRect(this.x - healthBarWidth/2, healthBarY, healthBarWidth * healthPercent, healthBarHeight);
+        
+        // Граница полоски здоровья
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(this.x - healthBarWidth/2, healthBarY, healthBarWidth, healthBarHeight);
 
         // Рисуем пули
         this.bullets.forEach(bullet => bullet.draw());
