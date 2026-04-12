@@ -82,6 +82,8 @@ const xpManager = new XPManager();
 const biomeManager = new BiomeManager();
 const enemySpawnManager = new EnemySpawnManager(WORLD_WIDTH, WORLD_HEIGHT);
 const mapManager = new MapManager(WORLD_WIDTH, WORLD_HEIGHT);
+const fogOfWar = new FogOfWar(canvas, 300);
+
 
 // Тряска камеры
 const cameraShake = {
@@ -150,6 +152,9 @@ function gameLoop() {
     // Обновление тряски камеры
     cameraShake.update(deltaTime);
 
+    // Обновление тумана войны
+    fogOfWar.update(player.x, player.y);
+
     // Обновление XP
     xpManager.update(deltaTime);
     if (xpManager.checkLevelUp()) {
@@ -162,11 +167,11 @@ function gameLoop() {
     }
 
     // Спавн врагов
-     enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
-        showVictory();
-        isVictory = true;
-        gameRunning = false;
-    });
+    //enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
+      //  showVictory();
+      //  isVictory = true;
+      //  gameRunning = false;
+   // });
 
     // Регенерация здоровья игрока
     regenTimer += deltaTime * 1000;
@@ -336,12 +341,29 @@ function gameLoop() {
     biomeManager.drawDecorations();
 
     // Рисование
-    enemies.forEach(enemy => enemy.draw());
-    powerUps.forEach(powerUp => powerUp.draw());
+    // Рисуем только видимых врагов
+    enemies.forEach(enemy => {
+        if (fogOfWar.isVisible(enemy.x, enemy.y, player.x, player.y)) {
+            enemy.draw();
+        }
+    });
+
+    powerUps.forEach(powerUp => {
+        if (fogOfWar.isVisible(powerUp.x, powerUp.y, player.x, player.y)) {
+            powerUp.draw();
+        }
+    });
+
     walls.forEach(wall => biomeManager.drawWall(wall));
     player.draw();
 
-    stage2Turrets.forEach(turret => turret.draw());
+    if (currentStage === 2) {
+        stage2Turrets.forEach(turret => {
+            if (turret.active && fogOfWar.isVisible(turret.x, turret.y, player.x, player.y)) {
+                turret.draw();
+            }
+        });
+    }
 
     // Рисование молний
     if (player.lightningBullets) {
@@ -390,6 +412,9 @@ function gameLoop() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
     }
+
+    // Отображаем туман войны
+    fogOfWar.render();
 
     // XP-бар
     xpManager.draw();
@@ -705,6 +730,10 @@ function resetGame() {
     player.turretAngle = 0;
     player.doubleShot = false;
 
+    // Убедитесь что setWalls вызван:
+    fogOfWar.setWalls(walls);
+    console.log('Segments:', fogOfWar.wallSegments.length); 
+    // Должно быть walls.length * 4
     // щит
     player.hasShield = false;
     player.shield = 30;
@@ -791,6 +820,15 @@ function resetGame() {
         biomeManager.currentBiome = 'grass';
         biomeManager.init();
     }
+
+        // Инициализация тумана войны
+    fogOfWar.reset();
+    fogOfWar.setWorldSize(WORLD_WIDTH, WORLD_HEIGHT);
+    fogOfWar.init();
+    fogOfWar.setWalls(walls);
+    // Убедитесь что стены имеют формат:
+    console.log(walls[0]); 
+    // Должно быть: {x: число, y: число, width: число, height: число}
 
     gameLoop();
 }
