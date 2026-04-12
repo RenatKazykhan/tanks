@@ -95,6 +95,16 @@ class BonusManager {
                 updateUIManager.updateHealthBar();
             }
         },
+        visibilityRange: {
+            name: "Увеличение дальности видимости",
+            icon: "🔭",
+            description: "Увеличение дальность видимости на <span class='bonus-value'>50</span>",
+            rarity: "rare",
+            apply: (player) => {
+                player.visibilityRange += 50;
+                fogOfWar.setVisibilityRadius(player.visibilityRange);
+            }
+        },
         doubleShot2: {
             name: "Двойной выстрел",
             icon: "🔥",
@@ -428,7 +438,7 @@ class BonusManager {
         if (player.hasRegen) usedBonuses.add(allBonuses.find(bonus => bonus === 'regen'));
         if (player.hasChainLightning) usedBonuses.add(allBonuses.find(bonus => bonus === 'lightning'));
         if (player.hasDroneKamikaze) usedBonuses.add(allBonuses.find(bonus => bonus === 'droneKamikaze'));
-
+        if (player.visibilityRange > 600) usedBonuses.add(allBonuses.find(bonus => bonus === 'visibilityRange'));
         if (player.lucky == 40) usedBonuses.add(allBonuses.find(bonus => bonus === 'lucky'));
 
         // Выбираем 3 уникальных бонуса

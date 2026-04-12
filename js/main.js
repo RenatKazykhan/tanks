@@ -143,8 +143,6 @@ function gameLoop() {
     // Ограничиваем дельта-время для предотвращения больших скачков
     deltaTime = Math.min(deltaTime, 0.1);
 
-    //ctx.drawImage(grassBackground.backgroundCanvas, 0, 0);
-
     // Обновление игрока
     player.update(keys, mouseX, mouseY, deltaTime);
     updateUIManager.updateHealthBar();
@@ -167,11 +165,11 @@ function gameLoop() {
     }
 
     // Спавн врагов
-    //enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
-      //  showVictory();
-      //  isVictory = true;
-      //  gameRunning = false;
-   // });
+    enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
+        showVictory();
+        isVictory = true;
+        gameRunning = false;
+    });
 
     // Регенерация здоровья игрока
     regenTimer += deltaTime * 1000;
@@ -342,9 +340,19 @@ function gameLoop() {
 
     // Рисование
     // Рисуем только видимых врагов
+    // Рисуем только видимых врагов
     enemies.forEach(enemy => {
         if (fogOfWar.isVisible(enemy.x, enemy.y, player.x, player.y)) {
             enemy.draw();
+        }
+
+        // Снаряды рисуем всегда, если они в зоне видимости игрока
+        if (enemy.bullets && enemy.bullets.length > 0) {
+            enemy.bullets.forEach(bullet => {
+                if (fogOfWar.isVisible(bullet.x, bullet.y, player.x, player.y)) {
+                    bullet.draw();
+                }
+            });
         }
     });
 
@@ -415,6 +423,7 @@ function gameLoop() {
 
     // Отображаем туман войны
     fogOfWar.render();
+    player.draw();
 
     // XP-бар
     xpManager.draw();

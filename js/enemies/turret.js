@@ -157,7 +157,7 @@ class Turret {
         ctx.strokeRect(this.x - healthBarWidth/2, healthBarY, healthBarWidth, healthBarHeight);
 
         // Рисуем пули
-        this.bullets.forEach(bullet => bullet.draw());
+        //this.bullets.forEach(bullet => bullet.draw());
     }
 
     takeDamage(damage) {

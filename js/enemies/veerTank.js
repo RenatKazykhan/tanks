@@ -10,16 +10,16 @@ class VeerTank {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 35;
-        this.height = 35;
-        this.speed = 80;
-        this.health = 75;
-        this.maxHealth = 75;
-        this.damage = 20;
+        this.width = 40;
+        this.height = 40;
+        this.speed = 90;
+        this.health = 300;
+        this.maxHealth = 300;
+        this.damage = 50;
         this.angle = Math.random() * Math.PI * 2;
         this.bullets = [];
         this.lastShot = 0;
-        this.shotCooldown = 1800;
+        this.shotCooldown = 600;
         this.active = true;
         
         // Новые параметры для усовершенствованного AI
@@ -132,7 +132,7 @@ class VeerTank {
             this.y += Math.sin(this.angle) * this.speed * 1.5 * deltaTime;
         } else {
             // Стратегическое движение с уклонением
-            const optimalDistance = 200;
+            const optimalDistance = 400;
             
             if (distance > optimalDistance + 50) {
                 // Приближение к игроку
@@ -290,20 +290,9 @@ class VeerTank {
             ctx.fillText('BERSERK', this.x, this.y - this.height/2 - 20);
             ctx.restore();
         }
-        
-        // Улучшенные визуальные эффекты для пуль
-        this.bullets.forEach(bullet => {
-            if (this.isBerserk) {
-                // Красные трассирующие пули в режиме берсерка
-                ctx.shadowColor = 'rgba(255, 100, 100, 0.8)';
-                ctx.shadowBlur = 10;
-            }
-            bullet.draw();
-            ctx.shadowBlur = 0;
-        });
     }
 
-        takeDamage(damage) {                
+    takeDamage(damage) {                
         if (this.health - damage <= 0) {
             this.active = false;
             return;

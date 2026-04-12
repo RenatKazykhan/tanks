@@ -20,6 +20,7 @@ class PlayerTank {
         this.lifeSteal = 0;
         this.onGameOver = onGameOver;
         this.accuracy = 0.95; // Точность стрельбы
+        this.visibilityRange = 300;
 
         // Двойной выстрел
         this.doubleShot = false;
