@@ -13,6 +13,28 @@
         <h1>ТАНКОВАЯ БИТВА</h1>
         <div id="points">💰 Очки: 0</div>
 
+        <!-- Этапы прохождения -->
+        <div class="stages-container">
+            <h2>Этапы прохождения</h2>
+            <div class="stages-grid">
+                <div class="stage-card stage-1 completed" data-stage="1" onclick="selectStage(1)">
+                    <div class="stage-icon">🌍</div>
+                    <div class="stage-name">Лесные территории</div>
+                    <div class="stage-description">Первый этап в лесном биоме</div>
+                    <div class="stage-record">Рекорд: <span id="stage1-record">0</span></div>
+                    <div class="stage-status">✅ ЗАВЕРШЕН</div>
+                </div>
+                
+                <div class="stage-card stage-2" data-stage="2" onclick="selectStage(2)">
+                    <div class="stage-icon">🏭</div>
+                    <div class="stage-name">Промышленная зона</div>
+                    <div class="stage-description">Второй этап в городе</div>
+                    <div class="stage-record">Рекорд: <span id="stage2-record">-</span></div>
+                    <div class="stage-status">🔒 ЗАБЛОКИРОВАНО</div>
+                </div>
+            </div>
+        </div>
+
         <div class="stats">
             <h2>Улучшения характеристик танка</h2>
 
@@ -242,7 +264,6 @@
     <script src="js/bullets/energyRedBullet.js"></script>
     <script src="js/bullets/rocket.js"></script>
     <script src="js/bullets/iceBullet.js"></script>
-    <script src="js/bullets/poisonBullet.js"></script>
     <script src="js/bullets/kamikazeDrone.js"></script>
     <script src="js/bullets/lightningBullet.js"></script>
     <script src="js/entyties/powerUp.js"></script>
@@ -265,6 +286,8 @@
     <script src="js/enemies/smokeTank.js"></script>
     <script src="js/enemies/iceTank.js"></script>
     <script src="js/enemies/poisonTank.js"></script>
+    <script src="js/enemies/veerTank.js"></script>
+    <script src="js/enemies/turret.js"></script>
 
     <script src="js/entyties/wall.js"></script>
     <script src="js/particle.js"></script>
@@ -276,8 +299,10 @@
     <script src="js/managers/eventHandlers.js"></script>
     <script src="js/managers/statManager.js"></script>
     <script src="js/managers/bonusManager.js"></script>
-    <script src="js/managers/waeponManager.js"></script>
     <script src="js/managers/checkCollisionsManager.js"></script>
+    <script src="js/managers/enemySpawnManager.js"></script>
+    <script src="js/managers/mapManager.js"></script>
+    <script src="js/managers/fogOfWarManager.js"></script>
     <script src="js/main.js"></script>
 </body>
 

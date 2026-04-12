@@ -11,7 +11,7 @@ canvas.width = window.innerWidth - 100;
 canvas.height = window.innerHeight - 115;
 
 // Размеры мира
-const WORLD_WIDTH = 3000;
+const WORLD_WIDTH = 3660;
 const WORLD_HEIGHT = 3000;
 
 // Камера
@@ -80,6 +80,10 @@ const checkCollisionManager = new CheckCollisionManager();
 const soundManager = new SoundManager();
 const xpManager = new XPManager();
 const biomeManager = new BiomeManager();
+const enemySpawnManager = new EnemySpawnManager(WORLD_WIDTH, WORLD_HEIGHT);
+const mapManager = new MapManager(WORLD_WIDTH, WORLD_HEIGHT);
+const fogOfWar = new FogOfWar(canvas, 300);
+
 
 // Тряска камеры
 const cameraShake = {
@@ -111,12 +115,9 @@ let particles = [];
 let keys = {};
 let mouseX = 0;
 let mouseY = 0;
-let enemySpawnTimer = 0;
-let enemySpawnInterval = 5000;
 let powerUps = [];
 let powerUpSpawnTimer = 0;
 let walls = [];
-let tankIndex = 250;
 let regenTimer = 0;
 // переменные для отслеживания времени
 let lastTime = 0;
@@ -151,6 +152,9 @@ function gameLoop() {
     // Обновление тряски камеры
     cameraShake.update(deltaTime);
 
+    // Обновление тумана войны
+    fogOfWar.update(player.x, player.y);
+
     // Обновление XP
     xpManager.update(deltaTime);
     if (xpManager.checkLevelUp()) {
@@ -163,12 +167,11 @@ function gameLoop() {
     }
 
     // Спавн врагов
-    enemySpawnTimer += deltaTime * 1000;
-    if (enemySpawnTimer > enemySpawnInterval) {
-        spawnEnemy();
-        enemySpawnTimer = 0;
-        enemySpawnInterval = Math.max(1000, enemySpawnInterval - 50);
-    }
+    //enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
+      //  showVictory();
+      //  isVictory = true;
+      //  gameRunning = false;
+   // });
 
     // Регенерация здоровья игрока
     regenTimer += deltaTime * 1000;
@@ -222,9 +225,6 @@ function gameLoop() {
                     if (bullet.isIceBullet) {
                         player.freeze(1000);
                     }
-                    if (bullet.isPoisonous) {
-                        player.applyPoison(bullet.poisonDamage, bullet.poisonDuration, bullet.poisonTickRate)
-                    }
                     bullet.active = false;
                     updateUIManager.updateScore();
                 }
@@ -234,6 +234,41 @@ function gameLoop() {
         }
         return false;
     });
+
+    if (currentStage === 2) {
+        // Обновляем турели
+        stage2Turrets.forEach(turret => {
+            if(turret.active == true) {
+                turret.update(player.x, player.y, deltaTime);
+            
+                turret.bullets = turret.bullets.filter(bullet => {
+                    let hitWall = false;
+                    walls.forEach(wall => {
+                        if (wall.checkCollisionWithCircle(bullet.x, bullet.y, bullet.radius)) {
+                            hitWall = true;
+                        }
+                    });
+                    return bullet.active && !hitWall;
+                });
+
+                // Проверяем столкновения пуль турелей с игроком
+                turret.bullets.forEach(bullet => {
+                    if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
+                        player.takeDamage(bullet.damage, bullet.x, bullet.y);
+                        bullet.active = false;
+                    }
+                });
+                
+                // Проверяем столкновения пуль игрока с турелями
+                player.bullets.forEach(bullet => {
+                    if (bullet.active && checkCollisionManager.checkCollision(bullet, turret, bullet.radius, turret.radius)) {
+                        turret.takeDamage(bullet.damage);
+                        bullet.active = false;
+                    }
+                });
+            }
+        });
+    }
 
     // Проверка столкновений игрока со стенами
     walls.forEach(wall => {
@@ -306,10 +341,29 @@ function gameLoop() {
     biomeManager.drawDecorations();
 
     // Рисование
-    enemies.forEach(enemy => enemy.draw());
-    powerUps.forEach(powerUp => powerUp.draw());
+    // Рисуем только видимых врагов
+    enemies.forEach(enemy => {
+        if (fogOfWar.isVisible(enemy.x, enemy.y, player.x, player.y)) {
+            enemy.draw();
+        }
+    });
+
+    powerUps.forEach(powerUp => {
+        if (fogOfWar.isVisible(powerUp.x, powerUp.y, player.x, player.y)) {
+            powerUp.draw();
+        }
+    });
+
     walls.forEach(wall => biomeManager.drawWall(wall));
     player.draw();
+
+    if (currentStage === 2) {
+        stage2Turrets.forEach(turret => {
+            if (turret.active && fogOfWar.isVisible(turret.x, turret.y, player.x, player.y)) {
+                turret.draw();
+            }
+        });
+    }
 
     // Рисование молний
     if (player.lightningBullets) {
@@ -359,6 +413,9 @@ function gameLoop() {
         ctx.restore();
     }
 
+    // Отображаем туман войны
+    fogOfWar.render();
+
     // XP-бар
     xpManager.draw();
     checkVictoryCondition();
@@ -402,128 +459,9 @@ function handleEnergyBlast(blastData) {
     });
 }
 
-function createMapFromLayout(layout) {
-    walls = [];
-    const cellSize = 60
-    // Можно добавить другие типы объектов
-    const objects = {
-        walls: []
-    };
-
-    // Проходим по каждой строке макета
-    for (let y = 0; y < layout.length; y++) {
-        for (let x = 0; x < layout[y].length; x++) {
-            const cell = layout[y][x];
-            const posX = x * cellSize;
-            const posY = y * cellSize;
-
-            switch (cell) {
-                case '#': // Стена
-                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize, cellSize));
-                    break;
-
-                case '-': // Горизонтальная стена
-                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize * 1.5, cellSize * 0.5));
-                    break;
-
-                case '|': // Вертикальная стена
-                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize * 0.5, cellSize * 1.5));
-                    break;
-
-                case 'P': // Начальная позиция игрока
-                    player.x = posX + cellSize / 2;
-                    player.y = posY + cellSize / 2;
-                    break;
-
-                case 'H': // Аптечка
-                    powerUps.push(new PowerUp(posX + cellSize / 2, posY + cellSize / 2, 'health'));
-                    break;
-
-                case '+': // Маленькая стена (декорация)
-                    walls.push(new Wall(posX + cellSize / 2, posY + cellSize / 2, cellSize * 0.6, cellSize * 0.6));
-                    break;
-
-                // Можно добавить больше типов объектов
-                case ' ': // Пустое пространство
-                default:
-                    break;
-            }
-        }
-    }
-
-    return objects;
-}
-
-// Пример использования с разными макетами
-const maps = {
-    level1: [
-        '                                                           ',
-        ' E                                                        E',
-        '                      #                                    ',
-        '                                                           ',
-        '                                                           ',
-        '     #   #  #         ####        #        #         ##    ',
-        '              #                                            ',
-        '       #      #       #   ###               #      #       ',
-        '       #      #                     #       #      #       ',
-        '                                                           ',
-        '   ##                               #      #    #          ',
-        '          #    #                           #               ',
-        '     E                ###   #### #                   E     ',
-        '          #    #                                #          ',
-        '                                             #             ',
-        '                                                           ',
-        '      ###  ##                                   #    ###   ',
-        '    #         #                               #        #   ',
-        '              #                                        #   ',
-        '              #          #      #             #            ',
-        '    #         #                                        #   ',
-        '      ###  ##                                 ##           ',
-        '                                                           ',
-        '                                                           ',
-        '      ####        ### #                             # ## ##',
-        '                         #      #                          ',
-        '                                                           ',
-        '                         #      #                          ',
-        '                                                           ',
-        '                            P                              ',
-        '                                                           ',
-        '                         #      #                          ',
-        '                                                           ',
-        '                         #      #                          ',
-        '  # # # # # ##  ###                 ###  #  #     # ## # ##',
-        '                                                           ',
-        '                         #      #                          ',
-        '    ###      ##                 #             ##      ##   ',
-        '                                                           ',
-        '                         #                  #              ',
-        '                                                       #   ',
-        '                                                       #   ',
-        '    ####    ###                                ##   #  #   ',
-        '                                                           ',
-        ' ####                                                ##  ##',
-        '          #    #                         #    #            ',
-        '     E                #           #                 E      ',
-        '          #    #      #           #      #    #            ',
-        ' ####     #    #                         #    #      ##  ##',
-        '                     #           #                         ',
-        '       #      #      #             #       #       #       ',
-        '       #      #                             #      #       ',
-        '       #      #                             #      #       ',
-        '       #      #                                          ##',
-        '                                 #                         ',
-        '                                                           ',
-        '                     ####        ####                      ',
-        ' E                                                        E',
-        '                                                           '
-    ]
-};
-
-// Обновленная функция createWalls для использования макетов
 function createWalls() {
-    // Используем макет вместо ручного создания стен
-    const currentMap = maps.level1; // Можно менять на другие карты
-    createMapFromLayout(currentMap);
+    const mapKey = mapManager.getMapKey(currentStage);
+    return mapManager.createMapFromLayout(mapKey, player, walls, powerUps, stage2Zones, stage2Turrets, stage2Enemies);
 }
 
 // Функция улучшения характеристик
@@ -597,118 +535,10 @@ function enemyDead(x, y) {
     }
 }
 
-// Спавн врагов
-function spawnEnemy() {
-    const side = Math.floor(Math.random() * 4);
-    let x, y;
-
-    switch (side) {
-        case 0: // сверху
-            x = Math.random() * WORLD_WIDTH;
-            y = -50;
-            break;
-        case 1: // справа
-            x = WORLD_WIDTH + 50;
-            y = Math.random() * WORLD_HEIGHT;
-            break;
-        case 2: // снизу
-            x = Math.random() * WORLD_WIDTH;
-            y = WORLD_HEIGHT + 50;
-            break;
-        case 3: // слева
-            x = 50;
-            y = Math.random() * WORLD_HEIGHT;
-            break;
-    }
-
-    // Автоматическая смена биома
-    const newBiome = biomeManager.getBiomeForWave(tankIndex);
-    biomeManager.setBiome(newBiome);
-
-    if (tankIndex <= 15) {
-        document.getElementById('waveValue').textContent = 1;
-        enemies.push(new Wave1(x, y));
-    }
-    else if (tankIndex <= 30) {
-        document.getElementById('waveValue').textContent = 2;
-        enemies.push(new IceTank(x, y));
-    }
-    else if (tankIndex <= 45) {
-        document.getElementById('waveValue').textContent = 2;
-        enemies.push(new SmokeTank(x, y));
-    }
-    else if (tankIndex <= 60) {
-        document.getElementById('waveValue').textContent = 3;
-        enemies.push(new BerserkTank(x, y));
-    }
-    else if (tankIndex <= 75) {
-        document.getElementById('waveValue').textContent = 4;
-        enemies.push(new KamikazeTank(x, y));
-    }
-    else if (tankIndex <= 90) {
-        document.getElementById('waveValue').textContent = 5;
-        enemies.push(new MinerTank(x, y));
-    }
-    else if (tankIndex <= 105) {
-        document.getElementById('waveValue').textContent = 6;
-        enemies.push(new TeleportTank(x, y));
-    }
-    else if (tankIndex <= 120) {
-        document.getElementById('waveValue').textContent = 7;
-        enemies.push(new ShieldTank(x, y));
-    }
-    else if (tankIndex <= 135) {
-        document.getElementById('waveValue').textContent = 8;
-        enemies.push(new SmartTank(x, y));
-    }
-    else if (tankIndex <= 150) {
-        document.getElementById('waveValue').textContent = 9;
-        enemies.push(new MachineGunTank(x, y));
-    }
-    else if (tankIndex <= 170) {
-        document.getElementById('waveValue').textContent = 10;
-        enemies.push(new HeavyTank(x, y));
-        //enemies.push(new PoisonTank(x, y));
-    }
-    else if (tankIndex <= 190) {
-        document.getElementById('waveValue').textContent = 11;
-        enemies.push(new RocketTank(x, y));
-    }
-    else if (tankIndex <= 210) {
-        document.getElementById('waveValue').textContent = 12;
-        enemies.push(new StrongEnemyTank(x, y));
-    }
-    else if (tankIndex <= 230) {
-        document.getElementById('waveValue').textContent = 13;
-        enemies.push(new Sniper(x, y));
-    }
-    else if (tankIndex <= 240) {
-        document.getElementById('waveValue').textContent = 14;
-        // пазуа
-    }
-    else if (tankIndex <= 250) {
-        document.getElementById('waveValue').textContent = 15;
-        enemies.push(new BossTank(x, y));
-    }
-    else if (tankIndex >= 300) {
-        // Проверка победы - все враги убиты и limit достигнут
-        if (enemies.length === 0 && !isVictory) {
-            showVictory();
-            isVictory = true;
-            gameRunning = false;
-            return; // Прерываем спавн
-        }
-    }
-    tankIndex++;
-
-    // Проверка победы после каждого спавна
-    checkVictoryCondition();
-}
-
 // Добавляем отдельную функцию проверки победы
 function checkVictoryCondition() {
     // Проверяем, достигнут ли лимит врагов и нет ли активных врагов
-    if (tankIndex >= 250 && enemies.length === 0 && !isVictory) {
+    if (currentStage === 1 && enemySpawnManager.tankIndex >= enemySpawnManager.maxEnemies && enemies.length === 0 && !isVictory) {
         // Дополнительная проверка - длительная пауза без спавна
         setTimeout(() => {
             if (enemies.length === 0 && !isVictory) {
@@ -718,6 +548,155 @@ function checkVictoryCondition() {
             }
         }, 2000); // Ждем 2 секунды для уверенности
     }
+    else if (currentStage === 2) {
+        // Проверяем, فعال ли босс
+        const bossActive = stage2Enemies.some(enemy => enemy instanceof BossTank && enemy.active);
+        
+        if (!bossActive && !stage2BossDefeated) {
+            stage2BossDefeated = true;
+            // Показываем выход
+            createExitEffect();
+        }
+        
+        checkStage2Exit();
+    }
+}
+
+// Функция проверки столкновения прямоугольников
+function checkRectCollision(rect1, rect2) {
+    return rect1.x < rect2.x + rect2.width &&
+           rect1.x + rect1.width > rect2.x &&
+           rect1.y < rect2.y + rect2.height &&
+           rect1.y + rect1.height > rect2.y;
+}
+
+function checkStage2Exit() {
+    if (currentStage !== 2 || stage2BossDefeated === false) return;
+    
+    const playerRect = {
+        x: player.x - player.width / 2,
+        y: player.y - player.height / 2,
+        width: player.width,
+        height: player.height
+    };
+    
+    if (checkRectCollision(playerRect, stage2Exit)) {
+        showVictory();
+    }
+}
+
+// Эффект для выхода
+function createExitEffect() {
+    const exitX = stage2Exit.x + stage2Exit.width / 2;
+    const exitY = stage2Exit.y + stage2Exit.height / 2;
+    
+    // Создаем частицы для выхода
+    for (let i = 0; i < 30; i++) {
+        const angle = (Math.PI * 2 * i) / 30;
+        particles.push(new Particle(
+            exitX + Math.cos(angle) * 30,
+            exitY + Math.sin(angle) * 30,
+            '#00ff00',
+            {
+                vx: Math.cos(angle) * 50,
+                vy: Math.sin(angle) * 50,
+                life: 2000,
+                size: 5
+            }
+        ));
+    }
+}
+
+// Упрвление этапами
+let currentStage = 1;
+let stageRecords = {
+    1: 0,
+    2: 0
+};
+let stageUnlocked = {
+    1: true,
+    2: false
+};
+
+// Добавляем новые переменные для этапа 2
+let stage2Progress = 0;
+let stage2Enemies = [];
+let stage2Turrets = [];
+let stage2BossDefeated = false;
+let stage2Exit = { x: 0, y: 0, width: 60, height: 60 };
+let stage2Zones = []; // Зоны появления врагов
+let lastZoneActivation = 0;
+
+// Функция выбора этапа
+function selectStage(stageId) {
+    const stageCard = document.querySelector(`[data-stage="${stageId}"]`);
+    
+    if (stageCard.classList.contains('locked')) {
+        return;
+    }
+    
+    // Убираем выделение с предыдущего этапа
+    document.querySelectorAll('.stage-card').forEach(card => {
+        card.classList.remove('current-stage');
+    });
+    
+    // Выделяем выбранный этап
+    stageCard.classList.add('current-stage');
+    currentStage = stageId;
+    
+    if (stageId === 2) {
+        stage2Progress = 0;
+        stage2Enemies = [];
+        stage2Turrets = [];
+        stage2BossDefeated = false;
+        stage2Zones = [];
+    }
+
+    // Сохраняем выбор
+    localStorage.setItem('currentStage', currentStage);
+}
+
+// Функция обновления статусов этапов
+function updateStagesUI() {
+    stageRecords = JSON.parse(localStorage.getItem('stageRecords')) || stageRecords;
+    stageUnlocked = JSON.parse(localStorage.getItem('stageUnlocked')) || stageUnlocked;
+    currentStage = parseInt(localStorage.getItem('currentStage')) || 1;
+    
+    // Обновляем каждый этап
+    for (let i = 1; i <= 2; i++) {
+        const stageCard = document.querySelector(`[data-stage="${i}"]`);
+        const recordElement = document.getElementById(`stage${i}-record`);
+        
+        if (stageRecords[i] > 0) {
+            stageCard.classList.remove('locked');
+            if (!stageCard.classList.contains('completed')) {
+                stageCard.classList.add('completed');
+                stageCard.querySelector('.stage-status').textContent = '✅ ЗАВЕРШЕН';
+                stageUnlocked[i] = true;
+            }
+        }
+        
+        if (stageUnlocked[i]) {
+            stageCard.classList.remove('locked');
+            if (stageRecords[i] === 0 && i > 1) {
+                stageCard.querySelector('.stage-status').textContent = '▶️ ДОСТУПЕН';
+            }
+        } else {
+            stageCard.classList.add('locked');
+            stageCard.querySelector('.stage-status').textContent = '🔒 ЗАБЛОКИРОВАНО';
+        }
+        
+        recordElement.textContent = stageRecords[i] || '-';
+        
+        // Выделяем текущий этап
+        if (i === currentStage) {
+            stageCard.classList.add('current-stage');
+        }
+    }
+    
+    // Сохраняем обновленные данные
+    localStorage.setItem('stageRecords', JSON.stringify(stageRecords));
+    localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
 }
 
 function startGame() {
@@ -751,6 +730,10 @@ function resetGame() {
     player.turretAngle = 0;
     player.doubleShot = false;
 
+    // Убедитесь что setWalls вызван:
+    fogOfWar.setWalls(walls);
+    console.log('Segments:', fogOfWar.wallSegments.length); 
+    // Должно быть walls.length * 4
     // щит
     player.hasShield = false;
     player.shield = 30;
@@ -781,18 +764,23 @@ function resetGame() {
     player.maxChainTargets = 4;
     player.chainLightningBounceRange = 200;
 
+    // Дрон-камикадзе
+    player.hasDroneKamikaze = false;
+    player.droneDamage = 50;
+    player.droneCooldown = 3000;
+    player.lastDroneTime = 0;
+    player.droneExplosionRadius = 60;
+    player.drones = [];
+
     statManager.reset();
     keys.length = 0;
 
     document.getElementById('waveValue').textContent = 1;
-
+    enemySpawnManager.reset();
     enemies = [];
     powerUps = [];
     score = 0;
-    enemySpawnTimer = 0;
-    enemySpawnInterval = 3000;
     powerUpSpawnTimer = 0;
-    tankIndex = 0;
     gameRunning = true;
     damageFlash = 0;
     createWalls();
@@ -810,6 +798,38 @@ function resetGame() {
     document.getElementById('victory').style.display = 'none';
     lastTime = performance.now();
     soundManager.resume();
+
+    // Сбрасываем состояние этапа 2
+    if (currentStage === 2) {
+        stage2Progress = 0;
+        stage2Enemies = [];
+        stage2Turrets = [];
+        stage2BossDefeated = false;
+        stage2Zones = [];
+    }
+    
+    // Используем соответствующую карту
+    const mapKey = currentStage === 2 ? 'level2' : 'level1';
+    mapManager.createMapFromLayout(mapKey, player, walls, powerUps, stage2Zones, stage2Turrets, stage2Enemies);
+    
+    // Устанавливаем биом для этапа 2
+    if (currentStage === 2) {
+        biomeManager.currentBiome = 'lava';
+        biomeManager.init();
+    } else {
+        biomeManager.currentBiome = 'grass';
+        biomeManager.init();
+    }
+
+        // Инициализация тумана войны
+    fogOfWar.reset();
+    fogOfWar.setWorldSize(WORLD_WIDTH, WORLD_HEIGHT);
+    fogOfWar.init();
+    fogOfWar.setWalls(walls);
+    // Убедитесь что стены имеют формат:
+    console.log(walls[0]); 
+    // Должно быть: {x: число, y: число, width: число, height: число}
+
     gameLoop();
 }
 
@@ -827,16 +847,18 @@ function backToMenu() {
         Object.assign(tankStats, JSON.parse(savedStats));
         updateUIManager.updateStatsDisplayMainMenu();
     }
-    // Добавляем очки за текущую игру
+    
     points += Math.floor(score / 20);
-
     gameRunning = false;
     canvas.style.display = 'none';
     gameContainer.style.display = 'none';
     gameInfo.style.display = 'none';
     mainMenu.style.display = 'block';
+    
+    // Обновляем UI этапов при возврате в меню
+    updateStagesUI();
 
-    updateUIManager.updateUpgradeUI();;
+    updateUIManager.updateUpgradeUI();
 }
 
 function togglePause() {
@@ -883,6 +905,9 @@ function init() {
         Object.assign(upgradeCosts, JSON.parse(savedCosts));
     }
 
+    // Инициализируем этапы
+    updateStagesUI();
+
     updateUIManager.updateUpgradeUI();
     soundManager.init();
 
@@ -924,6 +949,50 @@ function resetAllStats() {
 }
 
 function drawMinimap() {
+
+     if (currentStage === 2) {
+        // Отрисовка турелей
+        minimapCtx.fillStyle = '#ff00ff';
+        stage2Turrets.forEach(turret => {
+            if (turret.active) {
+                minimapCtx.fillRect(
+                    turret.x * minimapScale.x - 2,
+                    turret.y * minimapScale.y - 2,
+                    4,
+                    4
+                );
+            }
+        });
+        
+        // Отрисовка выхода (если активен)
+        if (stage2BossDefeated) {
+            minimapCtx.fillStyle = '#00ff00';
+            minimapCtx.fillRect(
+                stage2Exit.x * minimapScale.x,
+                stage2Exit.y * minimapScale.y,
+                stage2Exit.width * minimapScale.x,
+                stage2Exit.height * minimapScale.y
+            );
+        }
+        
+        // Отрисовка зон активации
+        minimapCtx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+        minimapCtx.lineWidth = 1;
+        stage2Zones.forEach(zone => {
+            if (!zone.activated) {
+                minimapCtx.beginPath();
+                minimapCtx.arc(
+                    zone.x * minimapScale.x,
+                    zone.y * minimapScale.y,
+                    zone.radius * minimapScale.x,
+                    0,
+                    Math.PI * 2
+                );
+                minimapCtx.stroke();
+            }
+        });
+    }
+
     // Очистка мини-карты
     minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
@@ -980,9 +1049,21 @@ function drawMinimap() {
 }
 
 function showVictory() {
-    if (isVictory) return; // Предотвращаем повторный вызов
+    if (isVictory) return;
     
-    console.log('Показываем экран победы'); // Для отладки
+    console.log('Показываем экран победы для этапа', currentStage);
+    
+    // Сохраняем рекорд этапа
+    if (score > stageRecords[currentStage]) {
+        stageRecords[currentStage] = score;
+        localStorage.setItem('stageRecords', JSON.stringify(stageRecords));
+    }
+    
+    // Разблокируем следующий этап
+    if (currentStage === 1 && stageRecords[1] > 0) {
+        stageUnlocked[2] = true;
+        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
+    }
     
     // Скрываем игровые элементы
     document.getElementById('gameOver').style.display = 'none';
@@ -993,6 +1074,18 @@ function showVictory() {
     const victoryScreen = document.getElementById('victory');
     victoryScreen.style.display = 'block';
     document.getElementById('victoryScore').textContent = score;
+
+    // Добавляем информацию об этапе
+    const stageInfo = document.createElement('div');
+    stageInfo.className = 'stage-info';
+    stageInfo.style.cssText = `
+        color: #fff;
+        font-size: 18px;
+        margin: 10px 0;
+        text-align: center;
+    `;
+    stageInfo.textContent = `Этап ${currentStage} завершен!`;
+    victoryScreen.querySelector('.victory-subtitle').after(stageInfo);
 
     // Создаем эффект конфетти
     createConfetti();
@@ -1009,11 +1102,6 @@ function showVictory() {
         recordScore = score;
         localStorage.setItem('tankGameRecord', recordScore);
         document.getElementById('recordScoreValue').textContent = recordScore;
-    }
-
-    // Воспроизводим звук победы (если есть)
-    if (typeof soundManager !== 'undefined') {
-        // soundManager.playVictory(); // Нужно добавить в звуковой менеджер
     }
 }
 

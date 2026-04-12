@@ -103,14 +103,6 @@ class PlayerTank {
 
         // Удача
         this.lucky = 0;
-
-        // Состояние отравления
-        this.isPoisoned = false;
-        this.poisonEndTime = 0;
-        this.poisonDamage = 0;
-        this.poisonTickRate = 500;
-        this.lastPoisonTick = 0;
-        this.poisonBubbles = [];
     }
 
     update(keys, mouseX, mouseY, deltaTime) {
@@ -238,69 +230,11 @@ class PlayerTank {
             return effect.life > 0;
         });
 
-        // Обработка отравления
-        if (this.isPoisoned) {
-            const now = Date.now();
-
-            // Проверяем, закончилось ли отравление
-            if (now >= this.poisonEndTime) {
-                this.isPoisoned = false;
-                this.accuracy = 0.95;
-                this.poisonBubbles = [];
-            } else {
-                // Наносим периодический урон
-                if (now - this.lastPoisonTick >= this.poisonTickRate) {
-                    this.takeDamage(this.poisonDamage);
-                    this.accuracy = 0.4;
-                    this.lastPoisonTick = now;
-
-                    // Добавляем визуальный эффект при получении урона
-                    for (let i = 0; i < 3; i++) {
-                        this.poisonBubbles.push({
-                            x: (Math.random() - 0.5) * this.width,
-                            y: (Math.random() - 0.5) * this.height,
-                            size: Math.random() * 4 + 2,
-                            speed: Math.random() * 20 + 10,
-                            life: 1
-                        });
-                    }
-                }
-
-                // Обновляем пузырьки
-                this.poisonBubbles = this.poisonBubbles.filter(bubble => {
-                    bubble.y -= bubble.speed * deltaTime;
-                    bubble.life -= deltaTime * 2;
-                    bubble.x += (Math.random() - 0.5) * 10 * deltaTime;
-                    return bubble.life > 0;
-                });
-
-                // Добавляем новые пузырьки периодически
-                if (Math.random() < 0.1) {
-                    this.poisonBubbles.push({
-                        x: (Math.random() - 0.5) * this.width,
-                        y: (Math.random() - 0.5) * this.height,
-                        size: Math.random() * 3 + 1,
-                        speed: Math.random() * 15 + 5,
-                        life: 1
-                    });
-                }
-            }
-        }
-
         // Обновление пуль
         this.bullets = this.bullets.filter(bullet => {
             bullet.update(deltaTime);
             return bullet.active;
         });
-    }
-
-    // Метод для применения отравления
-    applyPoison(damage, duration, tickRate) {
-        this.isPoisoned = true;
-        this.poisonEndTime = Date.now() + duration;
-        this.poisonDamage = damage;
-        this.poisonTickRate = tickRate;
-        this.lastPoisonTick = Date.now();
     }
 
     canUseRapidRegen() {
@@ -915,9 +849,6 @@ class PlayerTank {
             ctx.fillRect(this.x - shieldBarWidth / 2, barY, shieldBarWidth * shieldPercentage, shieldBarHeight);
         }
 
-        // Рисуем эффект отравления
-        this.drawPoisonEffect();
-
         // Надпись "🛡️"
         if (this.blockTimer > 0) {
             ctx.font = '20px Arial';
@@ -931,88 +862,6 @@ class PlayerTank {
 
         // Рисуем дроны
         this.drawDrones();
-    }
-
-    // Добавьте в метод draw после отрисовки танка
-    drawPoisonEffect() {
-        if (!this.isPoisoned) return;
-
-        ctx.save();
-        ctx.translate(this.x, this.y);
-
-        // Зеленая аура вокруг танка
-        const pulseIntensity = Math.sin(Date.now() * 0.005) * 0.2 + 0.3;
-        ctx.strokeStyle = `rgba(76, 175, 80, ${pulseIntensity})`;
-        ctx.lineWidth = 3;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.arc(0, 0, Math.max(this.width, this.height) * 0.8, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Рисуем пузырьки яда
-        this.poisonBubbles.forEach(bubble => {
-            ctx.save();
-            ctx.globalAlpha = bubble.life * 0.7;
-
-            const bubbleGradient = ctx.createRadialGradient(
-                bubble.x, bubble.y, 0,
-                bubble.x, bubble.y, bubble.size
-            );
-            bubbleGradient.addColorStop(0, '#81c784');
-            bubbleGradient.addColorStop(0.7, '#66bb6a');
-            bubbleGradient.addColorStop(1, 'transparent');
-
-            ctx.fillStyle = bubbleGradient;
-            ctx.beginPath();
-            ctx.arc(bubble.x, bubble.y, bubble.size, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
-        });
-
-        ctx.restore();
-
-        // Индикатор отравления над танком
-        this.drawPoisonIndicator();
-    }
-
-    drawPoisonIndicator() {
-        ctx.save();
-
-        // Позиция индикатора
-        const indicatorY = this.y - this.height / 2 - 25;
-
-        // Фон индикатора
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(this.x - 20, indicatorY - 8, 40, 16);
-
-        // Рамка
-        ctx.strokeStyle = '#4caf50';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(this.x - 20, indicatorY - 8, 40, 16);
-
-        // Иконка яда
-        ctx.fillStyle = '#66bb6a';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('☠', this.x - 10, indicatorY);
-
-        // Таймер отравления
-        const timeLeft = Math.max(0, (this.poisonEndTime - Date.now()) / 1000);
-        ctx.fillStyle = '#81c784';
-        ctx.font = '10px Arial';
-        ctx.fillText(timeLeft.toFixed(1) + 's', this.x + 10, indicatorY);
-
-        // Полоска прогресса отравления
-        const progress = timeLeft / (this.poisonEndTime - (this.poisonEndTime - 3000)) * 1000;
-        ctx.fillStyle = '#2e7d32';
-        ctx.fillRect(this.x - 18, indicatorY + 5, 36, 2);
-        ctx.fillStyle = '#66bb6a';
-        ctx.fillRect(this.x - 18, indicatorY + 5, 36 * progress, 2);
-
-        ctx.restore();
     }
 
     drawlightningEffects() {
@@ -1907,7 +1756,7 @@ class PlayerTank {
             }));
         }
     }
-    
+
     createTeleportEffect(x, y, type) {
         const particleCount = 20;
         const colors = type === 'departure' ?
