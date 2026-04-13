@@ -363,7 +363,6 @@ function gameLoop() {
     });
 
     walls.forEach(wall => biomeManager.drawWall(wall));
-    player.draw();
 
     if (currentStage === 2) {
         stage2Turrets.forEach(turret => {

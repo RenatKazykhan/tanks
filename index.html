@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Танки</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="hangar.css">
 </head>
 
 <body>
@@ -13,84 +14,329 @@
         <h1>ТАНКОВАЯ БИТВА</h1>
         <div id="points">💰 Очки: 0</div>
 
-        <!-- Этапы прохождения -->
-        <div class="stages-container">
-            <h2>Этапы прохождения</h2>
-            <div class="stages-grid">
-                <div class="stage-card stage-1 completed" data-stage="1" onclick="selectStage(1)">
-                    <div class="stage-icon">🌍</div>
-                    <div class="stage-name">Лесные территории</div>
-                    <div class="stage-description">Первый этап в лесном биоме</div>
-                    <div class="stage-record">Рекорд: <span id="stage1-record">0</span></div>
-                    <div class="stage-status">✅ ЗАВЕРШЕН</div>
-                </div>
+        <!-- Переключатель вкладок -->
+        <div class="menu-tabs">
+            <button class="tab-btn active" onclick="switchTab('hangar')">🔧 Ангар</button>
+            <button class="tab-btn" onclick="switchTab('stages')">🗺️ Этапы</button>
+        </div>
+
+        <!-- АНГАР -->
+        <div id="hangarTab" class="tab-content">
+            <div class="hangar-container">
+                <h2 class="hangar-title">⚙️ АНГАР — Улучшения танка</h2>
                 
-                <div class="stage-card stage-2" data-stage="2" onclick="selectStage(2)">
-                    <div class="stage-icon">🏭</div>
-                    <div class="stage-name">Промышленная зона</div>
-                    <div class="stage-description">Второй этап в городе</div>
-                    <div class="stage-record">Рекорд: <span id="stage2-record">-</span></div>
-                    <div class="stage-status">🔒 ЗАБЛОКИРОВАНО</div>
+                <div class="hangar-layout">
+                    <!-- Танк по центру слева -->
+                    <div class="tank-visual-area">
+                        <canvas id="hangarTankCanvas" width="320" height="400"></canvas>
+                        <div class="tank-stats-summary">
+                            <div class="summary-row">
+                                <span>❤️ HP:</span>
+                                <span id="summaryHP">100</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>🔫 Урон:</span>
+                                <span id="summaryDamage">20</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>⚡ Скорость:</span>
+                                <span id="summarySpeed">80</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>🔄 Перезарядка:</span>
+                                <span id="summaryReload">500ms</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>🛡️ Броня:</span>
+                                <span id="summaryArmor">0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>👁️ Обзор:</span>
+                                <span id="summaryVision">300</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SVG стрелки -->
+                    <svg class="hangar-arrows" viewBox="0 0 120 500" preserveAspectRatio="none">
+                        <!-- Орудие -->
+                        <path d="M 10 60 L 110 40" stroke="#ffaa00" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <!-- Башня -->
+                        <path d="M 10 120 L 110 120" stroke="#00aaff" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <!-- Двигатель -->
+                        <path d="M 10 200 L 110 210" stroke="#ff5555" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <!-- Гусеницы -->
+                        <path d="M 10 280 L 110 300" stroke="#55ff55" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <!-- Снаряды -->
+                        <path d="M 10 350 L 110 390" stroke="#ff55ff" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff"/>
+                            </marker>
+                        </defs>
+                    </svg>
+
+                    <!-- Модули справа -->
+                    <div class="modules-tree">
+                        <!-- ОРУДИЕ -->
+                        <div class="module-card" id="moduleGun" data-module="gun">
+                            <div class="module-header gun-color">
+                                <span class="module-icon">🔫</span>
+                                <span class="module-name">Орудие</span>
+                                <span class="module-level" id="gunLevel">Ур. 0</span>
+                            </div>
+                            <div class="module-bonuses">
+                                <div class="bonus-line">+Урон <span id="gunDamageBonus">+0</span></div>
+                                <div class="bonus-line">+Перезарядка <span id="gunReloadBonus">+0ms</span></div>
+                            </div>
+                            <div class="module-cost">
+                                <button class="upgrade-module-btn gun-btn" onclick="upgradeModule('gun')">
+                                    Улучшить — <span id="gunCost">50</span> 💰
+                                </button>
+                            </div>
+                            <div class="module-progress">
+                                <div class="progress-bar gun-progress" id="gunProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- БАШНЯ -->
+                        <div class="module-card" id="moduleTurret" data-module="turret">
+                            <div class="module-header turret-color">
+                                <span class="module-icon">🏗️</span>
+                                <span class="module-name">Башня</span>
+                                <span class="module-level" id="turretLevel">Ур. 0</span>
+                            </div>
+                            <div class="module-bonuses">
+                                <div class="bonus-line">+Скор. поворота <span id="turretRotationBonus">+0</span></div>
+                                <div class="bonus-line">+HP <span id="turretHPBonus">+0</span></div>
+                                <div class="bonus-line">+Обзор <span id="turretVisionBonus">+0</span></div>
+                            </div>
+                            <div class="module-cost">
+                                <button class="upgrade-module-btn turret-btn" onclick="upgradeModule('turret')">
+                                    Улучшить — <span id="turretCost">40</span> 💰
+                                </button>
+                            </div>
+                            <div class="module-progress">
+                                <div class="progress-bar turret-progress" id="turretProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- ДВИГАТЕЛЬ -->
+                        <div class="module-card" id="moduleEngine" data-module="engine">
+                            <div class="module-header engine-color">
+                                <span class="module-icon">🔧</span>
+                                <span class="module-name">Двигатель</span>
+                                <span class="module-level" id="engineLevel">Ур. 0</span>
+                            </div>
+                            <div class="module-bonuses">
+                                <div class="bonus-line">+Скорость <span id="engineSpeedBonus">+0</span></div>
+                            </div>
+                            <div class="module-cost">
+                                <button class="upgrade-module-btn engine-btn" onclick="upgradeModule('engine')">
+                                    Улучшить — <span id="engineCost">30</span> 💰
+                                </button>
+                            </div>
+                            <div class="module-progress">
+                                <div class="progress-bar engine-progress" id="engineProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- ГУСЕНИЦЫ -->
+                        <div class="module-card" id="moduleTracks" data-module="tracks">
+                            <div class="module-header tracks-color">
+                                <span class="module-icon">⛓️</span>
+                                <span class="module-name">Гусеницы</span>
+                                <span class="module-level" id="tracksLevel">Ур. 0</span>
+                            </div>
+                            <div class="module-bonuses">
+                                <div class="bonus-line">+Скорость <span id="tracksSpeedBonus">+0</span></div>
+                                <div class="bonus-line">+Скор. поворота <span id="tracksRotationBonus">+0</span></div>
+                            </div>
+                            <div class="module-cost">
+                                <button class="upgrade-module-btn tracks-btn" onclick="upgradeModule('tracks')">
+                                    Улучшить — <span id="tracksCost">35</span> 💰
+                                </button>
+                            </div>
+                            <div class="module-progress">
+                                <div class="progress-bar tracks-progress" id="tracksProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- СНАРЯДЫ -->
+                        <div class="module-card ammo-card" id="moduleAmmo" data-module="ammo">
+                            <div class="module-header ammo-color">
+                                <span class="module-icon">💥</span>
+                                <span class="module-name">Снаряды</span>
+                                <span class="module-level" id="ammoLevel">Ур. 0</span>
+                            </div>
+                            <div class="module-bonuses">
+                                <div class="bonus-line">+Общий урон <span id="ammoDamageBonus">+0</span></div>
+                            </div>
+                            <div class="module-cost">
+                                <button class="upgrade-module-btn ammo-btn" onclick="upgradeModule('ammo')">
+                                    Улучшить — <span id="ammoCost">45</span> 💰
+                                </button>
+                            </div>
+                            <div class="module-progress">
+                                <div class="progress-bar ammo-progress" id="ammoProgress" style="width: 0%"></div>
+                            </div>
+
+                            <!-- Подтипы снарядов -->
+                            <div class="ammo-subtypes">
+                                <svg class="ammo-arrows" viewBox="0 0 300 30">
+                                    <path d="M 50 5 L 50 25" stroke="#ff8800" stroke-width="2" fill="none" marker-end="url(#arrowSub)"/>
+                                    <path d="M 150 5 L 150 25" stroke="#ff00ff" stroke-width="2" fill="none" marker-end="url(#arrowSub)"/>
+                                    <path d="M 250 5 L 250 25" stroke="#00ff88" stroke-width="2" fill="none" marker-end="url(#arrowSub)"/>
+                                    <defs>
+                                        <marker id="arrowSub" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                                            <polygon points="0 0, 8 3, 0 6" fill="#ffffff"/>
+                                        </marker>
+                                    </defs>
+                                </svg>
+
+                                <div class="ammo-types-grid">
+                                    <!-- Бронебойные -->
+                                    <div class="ammo-type-card" id="ammoAP">
+                                        <div class="ammo-type-header ap-color">
+                                            <span>🔶 Бронебойные</span>
+                                            <span class="ammo-type-level" id="apLevel">Ур. 0</span>
+                                        </div>
+                                        <div class="ammo-type-desc">
+                                            <div>+Пробитие брони</div>
+                                            <div>+Урон по тяжёлым</div>
+                                            <div class="ammo-type-value" id="apBonus">+0% пробития</div>
+                                        </div>
+                                        <button class="upgrade-ammo-btn ap-btn" onclick="upgradeAmmoType('ap')">
+                                            <span id="apCost">30</span> 💰
+                                        </button>
+                                        <div class="module-progress small-progress">
+                                            <div class="progress-bar ap-progress" id="apProgress" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Кумулятивные -->
+                                    <div class="ammo-type-card" id="ammoHEAT">
+                                        <div class="ammo-type-header heat-color">
+                                            <span>🔷 Кумулятивные</span>
+                                            <span class="ammo-type-level" id="heatLevel">Ур. 0</span>
+                                        </div>
+                                        <div class="ammo-type-desc">
+                                            <div>+Урон по площади</div>
+                                            <div>+Поджог цели</div>
+                                            <div class="ammo-type-value" id="heatBonus">+0% урона</div>
+                                        </div>
+                                        <button class="upgrade-ammo-btn heat-btn" onclick="upgradeAmmoType('heat')">
+                                            <span id="heatCost">35</span> 💰
+                                        </button>
+                                        <div class="module-progress small-progress">
+                                            <div class="progress-bar heat-progress" id="heatProgress" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Фугасные -->
+                                    <div class="ammo-type-card" id="ammoHE">
+                                        <div class="ammo-type-header he-color">
+                                            <span>🟢 Фугасные</span>
+                                            <span class="ammo-type-level" id="heLevel">Ур. 0</span>
+                                        </div>
+                                        <div class="ammo-type-desc">
+                                            <div>+Радиус взрыва</div>
+                                            <div>+Оглушение</div>
+                                            <div class="ammo-type-value" id="heBonus">+0% радиуса</div>
+                                        </div>
+                                        <button class="upgrade-ammo-btn he-btn" onclick="upgradeAmmoType('he')">
+                                            <span id="heCost">40</span> 💰
+                                        </button>
+                                        <div class="module-progress small-progress">
+                                            <div class="progress-bar he-progress" id="heProgress" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Закрытие hangar-layout -->
+                </div>
+
+                <!-- Дополнительные модули -->
+                <div class="extra-modules">
+                    <h3>🛡️ Дополнительные модули</h3>
+                    <div class="extra-modules-grid">
+                        <div class="extra-module-card" id="moduleArmor">
+                            <div class="extra-module-header">
+                                <span>🛡️ Броня</span>
+                                <span class="module-level" id="armorLevel">Ур. 0</span>
+                            </div>
+                            <div class="extra-module-bonus">Снижение урона: <span id="armorBonus">0</span></div>
+                            <button class="upgrade-module-btn armor-extra-btn" onclick="upgradeModule('armor')">
+                                <span id="armorCost">70</span> 💰
+                            </button>
+                            <div class="module-progress">
+                                <div class="progress-bar armor-progress" id="armorProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="extra-module-card" id="moduleRegen">
+                            <div class="extra-module-header">
+                                <span>♻️ Регенерация</span>
+                                <span class="module-level" id="regenLevel">Ур. 0</span>
+                            </div>
+                            <div class="extra-module-bonus">HP/сек: <span id="regenBonus">0</span></div>
+                            <button class="upgrade-module-btn regen-extra-btn" onclick="upgradeModule('regen')">
+                                <span id="regenCost">60</span> 💰
+                            </button>
+                            <div class="module-progress">
+                                <div class="progress-bar regen-progress" id="regenProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="extra-module-card" id="moduleLifeSteal">
+                            <div class="extra-module-header">
+                                <span>🩸 Вампиризм</span>
+                                <span class="module-level" id="lifeStealLevel">Ур. 0</span>
+                            </div>
+                            <div class="extra-module-bonus">Восстановление: <span id="lifeStealBonus">0%</span></div>
+                            <button class="upgrade-module-btn lifesteal-extra-btn" onclick="upgradeModule('lifeSteal')">
+                                <span id="lifeStealCost">60</span> 💰
+                            </button>
+                            <div class="module-progress">
+                                <div class="progress-bar lifesteal-progress" id="lifeStealProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn">🔄 Сбросить все улучшения</button>
+            </div>
+        </div>
+
+        <!-- ЭТАПЫ -->
+        <div id="stagesTab" class="tab-content">
+            <div class="stages-container">
+                <h2>Этапы прохождения</h2>
+                <div class="stages-grid">
+                    <div class="stage-card stage-1 completed" data-stage="1" onclick="selectStage(1)">
+                        <div class="stage-icon">🌍</div>
+                        <div class="stage-name">Лесные территории</div>
+                        <div class="stage-description">Первый этап в лесном биоме</div>
+                        <div class="stage-record">Рекорд: <span id="stage1-record">0</span></div>
+                        <div class="stage-status">✅ ЗАВЕРШЕН</div>
+                    </div>
+                    
+                    <div class="stage-card stage-2" data-stage="2" onclick="selectStage(2)">
+                        <div class="stage-icon">🏭</div>
+                        <div class="stage-name">Промышленная зона</div>
+                        <div class="stage-description">Второй этап в городе</div>
+                        <div class="stage-record">Рекорд: <span id="stage2-record">-</span></div>
+                        <div class="stage-status">🔒 ЗАБЛОКИРОВАНО</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="stats">
-            <h2>Улучшения характеристик танка</h2>
-
-            <div class="stats-columns">
-                <div class="stat-item">
-                    <span class="stat-name">❤️ Макс. здоровье</span>
-                    <span class="stat-value" id="healthValue">100</span>
-                    <button class="upgrade-btn" onclick="upgrade('health')">Улучшить (50)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">⚡ Скорость</span>
-                    <span class="stat-value" id="speedValue">80</span>
-                    <button class="upgrade-btn" onclick="upgrade('speed')">Улучшить (30)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">🔫 Урон</span>
-                    <span class="stat-value" id="damageValue">20</span>
-                    <button class="upgrade-btn" onclick="upgrade('damage')">Улучшить (40)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">🚀 Скорострельность</span>
-                    <span class="stat-value" id="fireRateValue">500ms</span>
-                    <button class="upgrade-btn" onclick="upgrade('fireRate')">Улучшить (60)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">⚡ Скорость снаряда</span>
-                    <span class="stat-value" id="bulletSpeedValue">400</span>
-                    <button class="upgrade-btn" onclick="upgrade('bulletSpeed')">Улучшить (60)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">⚙️ Регенерация</span>
-                    <span class="stat-value" id="regenValue">0</span>
-                    <button class="upgrade-btn" onclick="upgrade('regen')">Улучшить (60)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">🛡️ Броня</span>
-                    <span class="stat-value" id="armorValue">0</span>
-                    <button class="upgrade-btn" onclick="upgrade('armor')">Улучшить (70)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">🩸 Вампиризм</span>
-                    <span class="stat-value" id="lifeStealValue">5%</span>
-                    <button class="upgrade-btn" onclick="upgrade('lifeSteal')">Улучшить (60)</button>
-                </div>
-            </div>
-        </div>
-
-        <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn">Сбросить</button>
-        <button id="startBtn" onclick="startGame()">НАЧАТЬ ИГРУ</button>
+        <button id="startBtn" onclick="startGame()">🎮 НАЧАТЬ ИГРУ</button>
     </div>
 
     <div id="gameContainer">
@@ -129,73 +375,23 @@
             </div>
 
             <table class="stats-table">
-                <tr>
-                    <th colspan="2">Статистика игры</th>
-                </tr>
-                <tr>
-                    <td>🎯 Танков уничтожено:</td>
-                    <td><span id="kills">0</span></td>
-                </tr>
-                <tr>
-                    <td>💥 Общий урон нанесён:</td>
-                    <td><span id="damageDone">0</span></td>
-                </tr>
-                <tr>
-                    <td>🔫 Урон от снарядов:</td>
-                    <td><span id="damageByBullet">0</span></td>
-                </tr>
-                <tr>
-                    <td>💥 Урон от взрыва:</td>
-                    <td><span id="damageByExplode">0</span></td>
-                </tr>
-                <tr>
-                    <td>⚡ Урон от цепной молнии:</td>
-                    <td><span id="damageByLightning">0</span></td>
-                </tr>
-                <tr>
-                    <td>📊 Выстрелов сделано:</td>
-                    <td><span id="shootsFired">0</span></td>
-                </tr>
-                <tr>
-                    <td>🎯 Попаданий:</td>
-                    <td><span id="hits">0</span></td>
-                </tr>
-                <tr>
-                    <td>🎯 Точность:</td>
-                    <td><span id="aim">0</span>%</td>
-                </tr>
-                <tr>
-                    <td>💔 Получено урона:</td>
-                    <td><span id="takeDamages">0</span></td>
-                </tr>
-                <tr>
-                    <td>⚡ Бонусов собрано:</td>
-                    <td><span id="bonusesCollect">0</span></td>
-                </tr>
-                <tr>
-                    <td>💚 Всего восстановлено HP:</td>
-                    <td><span id="healthRestored">0</span></td>
-                </tr>
-                <tr>
-                    <td>🩸 HP от вампиризма:</td>
-                    <td><span id="healthRestoredLifeSteal">0</span></td>
-                </tr>
-                <tr>
-                    <td>♻️ HP от пассивной регенерации:</td>
-                    <td><span id="healtRestoredRegen">0</span></td>
-                </tr>
-                <tr>
-                    <td>♻️ HP от способности регенерации:</td>
-                    <td><span id="healtRestoredActiveRegen">0</span></td>
-                </tr>
-                <tr>
-                    <td>🛡️ Блокировано броней:</td>
-                    <td><span id="blockedByArmor">0</span></td>
-                </tr>
-                <tr>
-                    <td>🔰 Ослаблено щитом:</td>
-                    <td><span id="blockedByShield">0</span></td>
-                </tr>
+                <tr><th colspan="2">Статистика игры</th></tr>
+                <tr><td>🎯 Танков уничтожено:</td><td><span id="kills">0</span></td></tr>
+                <tr><td>💥 Общий урон нанесён:</td><td><span id="damageDone">0</span></td></tr>
+                <tr><td>🔫 Урон от снарядов:</td><td><span id="damageByBullet">0</span></td></tr>
+                <tr><td>💥 Урон от взрыва:</td><td><span id="damageByExplode">0</span></td></tr>
+                <tr><td>⚡ Урон от цепной молнии:</td><td><span id="damageByLightning">0</span></td></tr>
+                <tr><td>📊 Выстрелов сделано:</td><td><span id="shootsFired">0</span></td></tr>
+                <tr><td>🎯 Попаданий:</td><td><span id="hits">0</span></td></tr>
+                <tr><td>🎯 Точность:</td><td><span id="aim">0</span>%</td></tr>
+                <tr><td>💔 Получено урона:</td><td><span id="takeDamages">0</span></td></tr>
+                <tr><td>⚡ Бонусов собрано:</td><td><span id="bonusesCollect">0</span></td></tr>
+                <tr><td>💚 Всего восстановлено HP:</td><td><span id="healthRestored">0</span></td></tr>
+                <tr><td>🩸 HP от вампиризма:</td><td><span id="healthRestoredLifeSteal">0</span></td></tr>
+                <tr><td>♻️ HP от пассивной регенерации:</td><td><span id="healtRestoredRegen">0</span></td></tr>
+                <tr><td>♻️ HP от способности регенерации:</td><td><span id="healtRestoredActiveRegen">0</span></td></tr>
+                <tr><td>🛡️ Блокировано броней:</td><td><span id="blockedByArmor">0</span></td></tr>
+                <tr><td>🔰 Ослаблено щитом:</td><td><span id="blockedByShield">0</span></td></tr>
             </table>
         </div>
         <div id="victory">
@@ -209,7 +405,6 @@
             <div class="pause-content">
                 <h2>ПАУЗА</h2>
                 <div class="tank-stats-ingame">
-                    <!-- Основные характеристики -->
                     <div class="stats-section">
                         <h3>📊 Основные характеристики</h3>
                         <div>⚡ Скорость: <span id="speedIngame">80</span></div>
@@ -217,18 +412,14 @@
                         <div>🚀 Скорострельность: <span id="fireRateIngame">500ms</span></div>
                         <div>⚡ Скорость снаряда: <span id="bulletSpeedIngame">400</span></div>
                     </div>
-
-                    <!-- Защита и восстановление -->
                     <div class="stats-section">
                         <h3>🛡️ Защита и восстановление</h3>
                         <div>🛡️ Броня: <span id="armorIngame">5</span></div>
                         <div>⚙️ Регенерация: <span id="regenIngame">0</span></div>
                         <div>🩸 Вампиризм: <span id="lifeStealIngame">0%</span></div>
-                        <div>🔋 Емкость энергетического щита: <span id="maxShieldIngame">0</span></div>
+                        <div>🔋 Ёмкость щита: <span id="maxShieldIngame">0</span></div>
                         <div>⚡ Регенерация щита: <span id="shieldRegenRateIngame">0</span></div>
                     </div>
-
-                    <!-- Способности -->
                     <div class="stats-section">
                         <h3>💥 Способности</h3>
                         <div>💣 Урон от взрыва: <span id="energyBlastDamageIngame">0</span></div>
@@ -236,10 +427,10 @@
                         <div>⏱️ Перезарядка взрыва: <span id="energyBlastCooldownIngame">0s</span></div>
                         <div>📏 Дистанция телепорта: <span id="teleportDistanceIngame">0</span></div>
                         <div>⏱️ Перезарядка телепорта: <span id="teleportCooldownIngame">0s</span></div>
-                        <div>⚡ Урон от цепной молнии: <span id="lightningDamageIngame">0</span></div>
-                        <div>📊 Количество прыжков: <span id="lightningCountIngame">0s</span></div>
-                        <div>📏 Радиус прыжка молнии: <span id="lightningRadiusIngame">0</span></div>
-                        <div>⏱️ Перезарядка цепной молнии: <span id="lightningCooldownIngame">0s</span></div>
+                        <div>⚡ Урон цепной молнии: <span id="lightningDamageIngame">0</span></div>
+                        <div>📊 Кол-во прыжков: <span id="lightningCountIngame">0s</span></div>
+                        <div>📏 Радиус прыжка: <span id="lightningRadiusIngame">0</span></div>
+                        <div>⏱️ Перезарядка молнии: <span id="lightningCooldownIngame">0s</span></div>
                     </div>
                 </div>
                 <p>Нажмите ESC или кнопку "Продолжить" для возобновления игры</p>
@@ -267,9 +458,7 @@
     <script src="js/bullets/kamikazeDrone.js"></script>
     <script src="js/bullets/lightningBullet.js"></script>
     <script src="js/entyties/powerUp.js"></script>
-
     <script src="js/playerTank.js"></script>
-
     <script src="js/enemies/enemyTank.js"></script>
     <script src="js/enemies/strongEnemyTank.js"></script>
     <script src="js/enemies/sniper.js"></script>
@@ -287,16 +476,12 @@
     <script src="js/enemies/berserkTank.js"></script>
     <script src="js/enemies/smokeTank.js"></script>
     <script src="js/enemies/iceTank.js"></script>
-    <script src="js/enemies/poisonTank.js"></script>
     <script src="js/enemies/veerTank.js"></script>
     <script src="js/enemies/turret.js"></script>
-
     <script src="js/entyties/wall.js"></script>
     <script src="js/particle.js"></script>
-
     <script src="js/managers/soundManager.js"></script>
     <script src="js/managers/xpManager.js"></script>
-
     <script src="js/managers/fogOfWarManager.js"></script>
     <script src="js/managers/updateUI.js"></script>
     <script src="js/managers/eventHandlers.js"></script>
@@ -305,7 +490,7 @@
     <script src="js/managers/checkCollisionsManager.js"></script>
     <script src="js/managers/enemySpawnManager.js"></script>
     <script src="js/managers/mapManager.js"></script>
+    <script src="js/hangar.js"></script>
     <script src="js/main.js"></script>
 </body>
-
 </html>
