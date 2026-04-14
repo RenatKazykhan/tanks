@@ -84,14 +84,7 @@ class PlayerTank {
         this.rapidRegenCooldownEndTime = 0;
         this.healParticles = [];
 
-        // Цепная молния
-        this.hasChainLightning = true;
-        this.chainLightningDamage = 40;
-        this.chainLightningCooldown = 10000;
-        this.lastChainLightningTime = 0;
-        this.maxChainTargets = 4;
-        this.chainLightningBounceRange = 200;
-        this.lightningEffects = [];
+        this.chainLightningSkill = new ChainLightning(this);
 
         // Дрон-камикадзе
         this.hasDroneKamikaze = false;
@@ -138,7 +131,7 @@ class PlayerTank {
         // Обновляем эффекты телепортации
         this.updateTeleportEffects(deltaTime);
         // Автоматическая активация цепной молнии
-        this.updateChainLightning();
+        this.chainLightningSkill.updateChainLightning(this.x, this.y);
 
         // Телепортация по нажатию клавиши (например, Space или E)
         if (keys['e'] || keys['E']) {
@@ -152,7 +145,7 @@ class PlayerTank {
 
         // В обработчике нажатия клавиш
         if (keys['f'] || keys['F']) {
-            this.activateChainLightning(enemies, mouseX, mouseY); // enemies - массив врагов
+            this.chainLightningSkill.activate(enemies, mouseX, mouseY); // enemies - массив врагов
         }
 
         // Энергетический взрыв
@@ -222,13 +215,6 @@ class PlayerTank {
         // Ограничение движения в пределах мира
         this.x = Math.max(player.width / 2, Math.min(WORLD_WIDTH - player.width / 2, player.x));
         this.y = Math.max(player.height / 2, Math.min(WORLD_HEIGHT - player.height / 2, player.y));
-
-        // Обновляем эффекты молнии
-        this.lightningEffects = this.lightningEffects.filter(effect => {
-            effect.life -= deltaTime * 4;
-            effect.width = 3 * effect.life;
-            return effect.life > 0;
-        });
 
         // Обновление пуль
         this.bullets = this.bullets.filter(bullet => {
@@ -808,7 +794,8 @@ class PlayerTank {
             ctx.restore();
         }
 
-        this.drawlightningEffects();
+       this.chainLightningSkill.draw();
+
         this.drawHealthBar();
 
         // Рисуем частицы телепортации
@@ -827,7 +814,7 @@ class PlayerTank {
         this.drawAbilityTeleportCooldown();
         this.drawAbilityBlastCooldown()
         this.drawAbilityRegenCooldown();
-        this.drawChainLightningCooldown();
+        //this.drawChainLightningCooldown();
 
         const barY = this.y - this.height / 2 - 25;
         // Полоска щита
@@ -862,33 +849,6 @@ class PlayerTank {
 
         // Рисуем дроны
         this.drawDrones();
-    }
-
-    drawlightningEffects() {
-        // Рисуем эффекты молнии
-        this.lightningEffects.forEach(effect => {
-            ctx.save();
-            ctx.strokeStyle = `rgba(150, 200, 255, ${effect.life})`;
-            ctx.lineWidth = effect.width;
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = 'rgba(150, 200, 255, 0.8)';
-
-            ctx.beginPath();
-            ctx.moveTo(effect.points[0].x, effect.points[0].y);
-
-            for (let i = 1; i < effect.points.length; i++) {
-                ctx.lineTo(effect.points[i].x, effect.points[i].y);
-            }
-
-            ctx.stroke();
-
-            // Дополнительный слой для яркости
-            ctx.strokeStyle = `rgba(255, 255, 255, ${effect.life * 0.5})`;
-            ctx.lineWidth = effect.width * 0.5;
-            ctx.stroke();
-
-            ctx.restore();
-        });
     }
 
     drawAbilityTeleportCooldown() {
@@ -1404,112 +1364,6 @@ class PlayerTank {
         }
     }
 
-    drawChainLightningCooldown() {
-        if (!this.hasChainLightning) return;
-
-        const cooldownProgress = Math.min(1, (Date.now() - this.lastChainLightningTime) / this.chainLightningCooldown);
-        const isReady = cooldownProgress >= 1;
-
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // Позиция индикатора (третий в ряду)
-        const indicatorX = 220;
-        const indicatorY = canvas.height - 40;
-        ctx.translate(indicatorX, indicatorY);
-
-        // Фон
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.beginPath();
-        ctx.arc(0, 0, 20, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Основной круг способности
-        ctx.fillStyle = isReady ? '#4a9eff' : '#333';
-        ctx.beginPath();
-        ctx.arc(0, 0, 18, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Символ молнии
-        ctx.strokeStyle = isReady ? '#ffffff' : '#666';
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        if (isReady) {
-            // Анимированное свечение для готовой способности
-            const pulse = Math.sin(Date.now() * 0.003) * 0.5 + 0.5;
-            ctx.shadowBlur = 10 + pulse * 5;
-            ctx.shadowColor = '#4a9eff';
-        }
-
-        // Рисуем молнию
-        ctx.beginPath();
-        ctx.moveTo(-5, -8);
-        ctx.lineTo(3, -2);
-        ctx.lineTo(-1, 2);
-        ctx.lineTo(5, 8);
-        ctx.stroke();
-
-        // Внешнее кольцо для готовой способности
-        if (isReady) {
-            const pulse = Math.sin(Date.now() * 0.003) * 0.5 + 0.5;
-            ctx.strokeStyle = 'rgba(74, 158, 255, ' + (0.3 + pulse * 0.3) + ')';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, 18 + pulse * 4, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Частицы вокруг
-            ctx.shadowBlur = 0;
-            const particleCount = 6;
-            for (let i = 0; i < particleCount; i++) {
-                const angle = (Math.PI * 2 / particleCount) * i + Date.now() * 0.002;
-                const particleRadius = 24 + Math.sin(Date.now() * 0.005 + i * 2) * 3;
-                const particleX = Math.cos(angle) * particleRadius;
-                const particleY = Math.sin(angle) * particleRadius;
-
-                ctx.fillStyle = '#4a9eff';
-                ctx.globalAlpha = 0.6 + pulse * 0.4;
-                ctx.beginPath();
-                ctx.arc(particleX, particleY, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1;
-        }
-
-        // Прогресс перезарядки
-        if (cooldownProgress < 1) {
-            // Полоса прогресса
-            ctx.strokeStyle = '#4a9eff';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.globalAlpha = 0.8;
-
-            ctx.beginPath();
-            ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * cooldownProgress));
-            ctx.stroke();
-
-            // Текст оставшегося времени
-            const remainingTime = Math.ceil((this.chainLightningCooldown - (Date.now() - this.lastChainLightningTime)) / 1000);
-            ctx.font = 'bold 10px Arial';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.globalAlpha = 1;
-            ctx.fillText(remainingTime + 's', 0, 28);
-        }
-
-        // Клавиша активации
-        ctx.font = 'bold 10px Arial';
-        ctx.fillStyle = isReady ? '#fff' : '#888';
-        ctx.shadowBlur = 3;
-        ctx.shadowColor = '#000';
-        ctx.fillText('[F]', -5, -30);
-
-        ctx.restore();
-    }
-
     updateFrostParticles(deltaTime) {
         // Добавляем новые частицы если танк заморожен
         if (this.isFrozen && Math.random() < 0.3 * this.frostIntensity) {
@@ -1678,66 +1532,6 @@ class PlayerTank {
         this.teleportAnimationTime = 300;
 
         soundManager.playTeleport();
-    }
-
-    // Обновление цепной молнии
-    updateChainLightning() {
-        if (!this.hasChainLightning) return;
-
-        const now = Date.now();
-        
-        // Проверяем, прошло ли время перезарядки
-        if (!this.lastLightningTime || now - this.lastLightningTime >= this.chainLightningCooldown) {
-            // Проверяем, есть ли враги в радиусе
-            if (this.checkEnemiesInRange()) {
-                this.shootChainLightning();
-                this.lastLightningTime = now;
-            }
-        }
-    }
-
-    // Проверка наличия врагов в радиусе действия молнии
-    checkEnemiesInRange() {
-        if (!enemies || enemies.length === 0) return false;
-
-        for (let enemy of enemies) {
-            if (enemy.active) {
-                const distance = Math.sqrt(Math.pow(enemy.x - this.x, 2) + Math.pow(enemy.y - this.y, 2));
-                if (distance <= this.chainLightningBounceRange) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    // Метод для стрельбы цепной молнией
-    shootChainLightning() {
-        if (!this.hasChainLightning) return;
-
-        // Создаем молнию от позиции игрока
-        const lightning = new LightningBullet(
-            this.x, 
-            this.y, 
-            this.chainLightningDamage, 
-            'player',
-            this.maxChainTargets,
-            this.chainLightningBounceRange
-        );
-
-        // Добавляем в специальный массив для молний
-        if (!this.lightningBullets) {
-            this.lightningBullets = [];
-        }
-        this.lightningBullets.push(lightning);
-
-        // Воспроизводим звук
-        if (typeof soundManager !== 'undefined') {
-            soundManager.playLightning();
-        }
-
-        // Добавляем визуальный эффект в месте игрока
-        this.createLightningEffect();
     }
 
     // Визуальный эффект при активации молнии
@@ -2054,55 +1848,6 @@ class PlayerTank {
                     }
                 }
             });
-        }
-    }
-
-    createLightningEffect(x1, y1, x2, y2) {
-        const segments = 8;
-        const points = [{ x: x1, y: y1 }];
-
-        for (let i = 1; i < segments; i++) {
-            const t = i / segments;
-            const x = x1 + (x2 - x1) * t + (Math.random() - 0.5) * 20;
-            const y = y1 + (y2 - y1) * t + (Math.random() - 0.5) * 20;
-            points.push({ x, y });
-        }
-        points.push({ x: x2, y: y2 });
-
-        this.lightningEffects.push({
-            points: points,
-            life: 1.0,
-            width: 3
-        });
-    }
-
-     // В методе Shooting или подобном
-    shootChainLightning() {
-        if (!this.hasChainLightning || this.lastLightningTime + this.chainLightningCooldown > Date.now()) {
-            return;
-        }
-
-        // Создаем молнию от позиции игрока
-        const lightning = new LightningBullet(
-            this.x, 
-            this.y, 
-            this.chainLightningDamage, 
-            'player',
-            this.maxChainTargets,
-            this.chainLightningBounceRange
-        );
-
-        // Добавляем в специальный массив для молний
-        if (!this.lightningBullets) {
-            this.lightningBullets = [];
-        }
-        this.lightningBullets.push(lightning);
-
-        this.lastLightningTime = Date.now();
-        
-        // Воспроизводим звук
-        if (typeof soundManager !== 'undefined') {
-            soundManager.playLightning();
         }
     }
 

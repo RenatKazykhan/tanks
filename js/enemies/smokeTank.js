@@ -213,7 +213,7 @@ class SmokeTank {
     ctx.restore();
     
     // Рисуем пули (они видны всегда)
-    this.bullets.forEach(bullet => bullet.draw());
+    //this.bullets.forEach(bullet => bullet.draw());
 }
     
     takeDamage(damage) {

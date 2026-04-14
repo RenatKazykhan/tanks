@@ -189,6 +189,6 @@ class Sniper extends EnemyTank {
     ctx.fillRect(this.x - healthBarWidth/2, this.y - this.height/2 - 17, healthBarWidth * healthPercentage, healthBarHeight);
     
     // Рисуем пули
-    this.bullets.forEach(bullet => bullet.draw());
+    //this.bullets.forEach(bullet => bullet.draw());
   }
 }

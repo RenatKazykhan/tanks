@@ -280,7 +280,7 @@ class MinerTank {
         ctx.fillRect(this.x - healthBarWidth/2, this.y - this.height/2 - 12, healthBarWidth * healthPercentage, healthBarHeight);
         
         // Рисуем пули
-        this.bullets.forEach(bullet => bullet.draw());
+        //this.bullets.forEach(bullet => bullet.draw());
     }
     
     takeDamage(damage) {

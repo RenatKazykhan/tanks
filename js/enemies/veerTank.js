@@ -290,17 +290,6 @@ class VeerTank {
             ctx.fillText('BERSERK', this.x, this.y - this.height/2 - 20);
             ctx.restore();
         }
-        
-        // Улучшенные визуальные эффекты для пуль
-        this.bullets.forEach(bullet => {
-            if (this.isBerserk) {
-                // Красные трассирующие пули в режиме берсерка
-                ctx.shadowColor = 'rgba(255, 100, 100, 0.8)';
-                ctx.shadowBlur = 10;
-            }
-            bullet.draw();
-            ctx.shadowBlur = 0;
-        });
     }
 
         takeDamage(damage) {                

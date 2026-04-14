@@ -167,11 +167,11 @@ function gameLoop() {
     }
 
     // Спавн врагов
-    //enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
-      //  showVictory();
-      //  isVictory = true;
-      //  gameRunning = false;
-   // });
+    enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, () => {
+        showVictory();
+        isVictory = true;
+        gameRunning = false;
+    });
 
     // Регенерация здоровья игрока
     regenTimer += deltaTime * 1000;
@@ -187,7 +187,6 @@ function gameLoop() {
     // Обновление бонусов
     powerUps = powerUps.filter(powerUp => {
         if (Math.sqrt(Math.pow(player.x - powerUp.x, 2) + Math.pow(player.y - powerUp.y, 2)) < 30) {
-            // Вместо прямого применения эффекта показываем выбор
             bonusManager.showBonusSelection();
             return false;
         }
@@ -345,6 +344,15 @@ function gameLoop() {
     enemies.forEach(enemy => {
         if (fogOfWar.isVisible(enemy.x, enemy.y, player.x, player.y)) {
             enemy.draw();
+        }
+
+        // Снаряды рисуем всегда, если они в зоне видимости игрока
+        if (enemy.bullets && enemy.bullets.length > 0) {
+            enemy.bullets.forEach(bullet => {
+                if (fogOfWar.isVisible(bullet.x, bullet.y, player.x, player.y)) {
+                    bullet.draw();
+                }
+            });
         }
     });
 

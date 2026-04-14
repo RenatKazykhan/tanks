@@ -345,7 +345,7 @@ class StrongEnemyTank {
     }
     
     // Рисуем пули
-    this.bullets.forEach(bullet => bullet.draw());
+    //this.bullets.forEach(bullet => bullet.draw());
 }
     
     takeDamage(damage) {

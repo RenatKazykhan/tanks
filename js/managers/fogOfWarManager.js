@@ -312,12 +312,37 @@ class FogOfWar {
     //this.renderDebug(ctx, cam);
   }
 
-  isVisible(worldX, worldY) {
+ isVisible(worldX, worldY) {
     if (!this.enabled) return true;
+
     const dx = worldX - this.playerX;
     const dy = worldY - this.playerY;
-    return Math.sqrt(dx * dx + dy * dy) <= this.visibilityRadius;
-  }
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Проверка радиуса
+    if (dist > this.visibilityRadius) return false;
+
+    // Проверка прямой видимости — нет ли стены между игроком и точкой
+    const angle = Math.atan2(dy, dx);
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
+
+    for (let i = 0; i < this.wallSegments.length; i++) {
+        const seg = this.wallSegments[i];
+        const t = this.getRayIntersection(
+            this.playerX, this.playerY,
+            dirX, dirY,
+            seg.ax, seg.ay, seg.bx, seg.by
+        );
+
+        // Стена ближе чем объект — значит объект за стеной
+        if (t < dist) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
   reset() {
     if (!this.fogCanvas) this.init();

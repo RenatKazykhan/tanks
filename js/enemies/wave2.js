@@ -392,7 +392,7 @@ class Wave2 {
         if (!this.active) return;
         
         // Отрисовка пуль
-        this.bullets.forEach(bullet => bullet.draw());
+        //this.bullets.forEach(bullet => bullet.draw());
         
         ctx.save();
         ctx.translate(this.x, this.y);

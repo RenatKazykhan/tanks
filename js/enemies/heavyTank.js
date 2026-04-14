@@ -196,7 +196,7 @@ class HeavyTank {
         ctx.fillRect(this.x - healthBarWidth/2, this.y - this.height/2 - 15, healthBarWidth * healthPercentage, healthBarHeight);
         
         // Рисуем пули
-        this.bullets.forEach(bullet => bullet.draw());
+        //this.bullets.forEach(bullet => bullet.draw());
         
         // Эффект брони (мерцание при получении урона)
         if (this.lastDamageTime && Date.now() - this.lastDamageTime < 200) {

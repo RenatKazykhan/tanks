@@ -365,7 +365,7 @@ class BossTank {
         ctx.fillText(`BOSS`, this.x, this.y - this.height/2 - 30);
         
         // Рисуем пули
-        this.bullets.forEach(bullet => bullet.draw());
+        //this.bullets.forEach(bullet => bullet.draw());
     }
     
     drawChargeParticles() {

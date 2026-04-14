@@ -105,7 +105,7 @@ class RocketTank {
         ctx.fillRect(this.x - healthBarWidth/2, this.y - this.height/2 - 15, healthBarWidth * healthPercentage, healthBarHeight);
         
         // Рисуем ракеты
-        this.bullets.forEach(rocket => rocket.draw());
+        //this.bullets.forEach(rocket => rocket.draw());
     }
     
     takeDamage(damage) {
