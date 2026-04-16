@@ -77,7 +77,8 @@ class EnemySpawnManager {
             enemy = new BerserkTank(x, y);
         } else if (this.tankIndex <= 75) {
             document.getElementById('waveValue').textContent = 4;
-            enemy = new KamikazeTank(x, y);
+            //enemy = new KamikazeTank(x, y);
+            enemy = new VeerTank(x, y);
         } else if (this.tankIndex <= 90) {
             document.getElementById('waveValue').textContent = 5;
             enemy = new MinerTank(x, y);
@@ -105,7 +106,7 @@ class EnemySpawnManager {
         } else if (this.tankIndex <= 230) {
             document.getElementById('waveValue').textContent = 13;
             enemy = new Sniper(x, y);
-        } else if (this.tankIndex <= 240) {
+        } else if (this.tankIndex <= 250) {
             document.getElementById('waveValue').textContent = 14;
             enemy = new StrongEnemyTank(x, y);
         } else if (this.tankIndex <= 280) {

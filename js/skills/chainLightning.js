@@ -12,11 +12,11 @@ class ChainLightning {
         this.lightningBullets = [];
 
         // Цепная молния
-        this.damage = 20;
+        this.damage = 10;
         this.cooldown = 10000;
         this.lastTimeUse = 0;
         this.jumps = 4;
-        this.bounceRange = 200;
+        this.bounceRange = 100;
         this.lightningEffects = [];
 
         this.upgradeSkillButton = new UpgradeSkillButton(220, 0);
@@ -36,7 +36,7 @@ class ChainLightning {
 
         // Calculate stats based on level
         this.damage = this.damage + (this.level * 10);
-        this.bounceRange = this.bounceRange + (this.level * 10);
+        this.bounceRange = this.bounceRange + (this.level * 25);
 
         // Jump progression: 2, 3, 3, 4, 5
         const jumpMap = [0, 2, 3, 3, 4, 5];

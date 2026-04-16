@@ -10,15 +10,15 @@ class Shield {
         // Пассивная аура щита
         this.shieldAmount = 100;
         this.maxShield = 100;
-        this.shieldRegenRate = 5; // единиц в секунду
+        this.shieldRegenRate = 5;
         this.shieldBroken = false;
-        this.shieldRegenDelay = 3000; // мс задержка перед регенерацией
-        this.lastShieldBreak = 0;
+        this.shieldRegenDelay = 3000;
+        this.lastDamageTime = 0; // ← ДОБАВЛЕНО: время последнего получения урона
 
         // Активная способность — заморозка
         this.freezeRadius = 200;
-        this.freezeDuration = 2000; // мс
-        this.freezeSlowAmount = 0.3; // множитель скорости
+        this.freezeDuration = 2000;
+        this.freezeSlowAmount = 0.3;
         this.cooldown = 12000;
         this.lastUseTime = 0;
 
@@ -72,8 +72,9 @@ class Shield {
                 this.cooldown = 12000;
                 this.shieldRegenDelay = 3000;
                 this.lastUseTime = 0;
+                this.lastDamageTime = 0; // ← ДОБАВЛЕНО
+                this.shieldBroken = false; // ← ДОБАВЛЕНО
 
-                // Синхронизируем с PlayerTank
                 this.owner.hasShield = true;
                 this.owner.shield = this.shieldAmount;
                 this.owner.maxShield = this.maxShield;
@@ -84,12 +85,14 @@ class Shield {
                 this.updateLevel();
                 this.lastUseTime = 0;
 
-                // Синхронизируем с PlayerTank
                 this.owner.maxShield = this.maxShield;
                 this.owner.shield = Math.min(this.owner.shield, this.maxShield);
                 this.owner.shieldRegenRate = this.shieldRegenRate;
                 this.owner.shieldRegenDelay = this.shieldRegenDelay;
             }
+
+            // ← ДОБАВЛЕНО: синхронизируем shieldAmount с owner
+            this.shieldAmount = this.owner.shield;
 
             if (typeof soundManager !== 'undefined' && typeof soundManager.playLevelUp === 'function') {
                 soundManager.playLevelUp();
@@ -97,7 +100,51 @@ class Shield {
         }
     }
 
-    // Активная способность — заморозка ближайших врагов
+    // ← ДОБАВЛЕНО: вызывается когда игрок получает урон по щиту
+    onShieldDamaged(damageAmount) {
+        this.lastDamageTime = Date.now();
+        this.shieldAmount = this.owner.shield; // синхронизируем
+
+        if (this.shieldAmount <= 0) {
+            this.shieldBroken = true;
+            this.shieldAmount = 0;
+            this.owner.shield = 0;
+        }
+    }
+
+    // ← ДОБАВЛЕНО: основная логика регенерации щита
+    updateShieldRegen(deltaTime) {
+        if (!this.hasShield) return;
+        if (this.level <= 0) return;
+
+        // Синхронизируем из owner (на случай если урон нанесён напрямую)
+        this.shieldAmount = this.owner.shield || 0;
+
+        const now = Date.now();
+        const timeSinceLastDamage = now - this.lastDamageTime;
+
+        // Проверяем: прошло ли достаточно времени после последнего урона
+        if (timeSinceLastDamage < this.shieldRegenDelay) {
+            return; // ещё рано регенерировать
+        }
+
+        // Если щит сломан, восстанавливаем его
+        if (this.shieldBroken && timeSinceLastDamage >= this.shieldRegenDelay) {
+            this.shieldBroken = false;
+            this.owner.hasShield = true;
+        }
+
+        // Регенерация щита
+        if (this.shieldAmount < this.maxShield) {
+            this.shieldAmount += this.shieldRegenRate * deltaTime;
+            this.shieldAmount = Math.min(this.shieldAmount, this.maxShield);
+
+            // Синхронизируем обратно в owner
+            this.owner.shield = this.shieldAmount;
+            this.owner.maxShield = this.maxShield;
+        }
+    }
+
     activate(enemies) {
         if (!this.hasShield) return false;
         if (Date.now() - this.lastUseTime < this.cooldown) return false;
@@ -114,11 +161,9 @@ class Shield {
                 );
 
                 if (dist <= this.freezeRadius) {
-                    // Замораживаем врага
                     this.applyFreezeToEnemy(enemy);
                     frozenCount++;
 
-                    // Визуальный эффект на замороженном враге
                     this.frozenEnemyEffects.push({
                         x: enemy.x,
                         y: enemy.y,
@@ -130,7 +175,6 @@ class Shield {
         });
 
         if (frozenCount > 0) {
-            // Создаём волну заморозки
             this.createFreezeWave();
             this.playFreezeSound();
             return true;
@@ -140,7 +184,6 @@ class Shield {
     }
 
     applyFreezeToEnemy(enemy) {
-        // Сохраняем оригинальную скорость если ещё не заморожен
         if (!enemy._originalSpeed) {
             enemy._originalSpeed = enemy.speed;
         }
@@ -148,21 +191,18 @@ class Shield {
             enemy._originalShotCooldown = enemy.shotCooldown;
         }
 
-        // Замедляем врага
         enemy.speed = enemy._originalSpeed * this.freezeSlowAmount;
         enemy.shotCooldown = enemy._originalShotCooldown * 2;
         enemy._isFrozenByShield = true;
         enemy._frozenEndTime = Date.now() + this.freezeDuration;
     }
 
-    // Обновление эффектов заморозки на врагах (вызывается каждый кадр)
     updateFrozenEnemies(enemies) {
         if (!this.hasShield) return;
 
         const now = Date.now();
         enemies.forEach(enemy => {
             if (enemy._isFrozenByShield && now >= enemy._frozenEndTime) {
-                // Размораживаем
                 if (enemy._originalSpeed) {
                     enemy.speed = enemy._originalSpeed;
                     delete enemy._originalSpeed;
@@ -188,7 +228,6 @@ class Shield {
 
     playFreezeSound() {
         if (typeof soundManager !== 'undefined') {
-            // Используем имеющийся звук
             if (typeof soundManager.playHit === 'function') {
                 soundManager.playHit();
             }
@@ -196,9 +235,12 @@ class Shield {
     }
 
     update(deltaTime, enemies) {
+        // ← ДОБАВЛЕНО: обновляем регенерацию щита каждый кадр
+        this.updateShieldRegen(deltaTime);
+
         // Обновляем визуальные эффекты
         this.freezeWaveEffects = this.freezeWaveEffects.filter(effect => {
-            effect.radius += deltaTime * 600; // скорость расширения волны
+            effect.radius += deltaTime * 600;
             effect.life -= deltaTime * 2;
             return effect.life > 0 && effect.radius < effect.maxRadius;
         });
@@ -208,7 +250,6 @@ class Shield {
             return effect.life > 0;
         });
 
-        // Обновляем состояние заморозки на врагах
         if (enemies) {
             this.updateFrozenEnemies(enemies);
         }
@@ -229,13 +270,9 @@ class Shield {
             this.drawCooldownIndicator();
         }
 
-        // Рисуем волну заморозки
         this.drawFreezeWaveEffects();
-
-        // Рисуем эффекты на замороженных врагах
         this.drawFrozenEnemyEffects(enemies);
 
-        // Кнопка апгрейда
         if (typeof canvas !== 'undefined') {
             this.upgradeButton.y = canvas.height - 110;
             this.upgradeButton.draw(this.level, this.maxLevel, this.owner.skillPoints);
@@ -246,7 +283,6 @@ class Shield {
         this.freezeWaveEffects.forEach(effect => {
             ctx.save();
 
-            // Ледяная волна
             const alpha = effect.life * 0.6;
             ctx.strokeStyle = `rgba(100, 200, 255, ${alpha})`;
             ctx.lineWidth = 3 * effect.life;
@@ -257,14 +293,12 @@ class Shield {
             ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Внутренне свечение
             ctx.strokeStyle = `rgba(200, 240, 255, ${alpha * 0.5})`;
             ctx.lineWidth = 1.5 * effect.life;
             ctx.beginPath();
             ctx.arc(effect.x, effect.y, effect.radius * 0.8, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Снежинки на волне
             const numFlakes = 8;
             for (let i = 0; i < numFlakes; i++) {
                 const angle = (Math.PI * 2 / numFlakes) * i + Date.now() * 0.002;
@@ -284,13 +318,11 @@ class Shield {
     drawFrozenEnemyEffects(enemies) {
         if (!enemies) return;
 
-        // Рисуем ледяной эффект на замороженных врагах
         enemies.forEach(enemy => {
             if (enemy._isFrozenByShield && enemy.active) {
                 ctx.save();
                 ctx.translate(enemy.x, enemy.y);
 
-                // Ледяная аура вокруг врага
                 const pulse = Math.sin(Date.now() * 0.005) * 0.3 + 0.7;
                 const auraGradient = ctx.createRadialGradient(0, 0, 10, 0, 0, 35);
                 auraGradient.addColorStop(0, `rgba(100, 200, 255, ${0.3 * pulse})`);
@@ -302,7 +334,6 @@ class Shield {
                 ctx.arc(0, 0, 35, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Снежинки вокруг врага
                 ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * pulse})`;
                 ctx.lineWidth = 1;
                 for (let i = 0; i < 4; i++) {
@@ -328,7 +359,6 @@ class Shield {
                     ctx.restore();
                 }
 
-                // Текст "❄️" над врагом
                 ctx.font = '14px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#ffffff';
@@ -338,13 +368,11 @@ class Shield {
             }
         });
 
-        // Рисуем эффекты взрыва заморозки (одноразовые)
         this.frozenEnemyEffects.forEach(effect => {
             ctx.save();
             ctx.translate(effect.x, effect.y);
 
             const alpha = effect.life * 0.8;
-            // Ледяные осколки
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI * 2 / 6) * i;
                 const dist = effect.radius * (1 - effect.life) * 2;
@@ -371,19 +399,16 @@ class Shield {
         const indicatorY = typeof canvas !== 'undefined' ? canvas.height - 60 : 560;
         ctx.translate(this.indicatorX, indicatorY);
 
-        // Background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.beginPath();
         ctx.arc(0, 0, 20, 0, Math.PI * 2);
         ctx.fill();
 
-        // Main circle
         ctx.fillStyle = isReady ? '#00bcd4' : '#333';
         ctx.beginPath();
         ctx.arc(0, 0, 18, 0, Math.PI * 2);
         ctx.fill();
 
-        // Shield + snowflake symbol
         ctx.strokeStyle = isReady ? '#ffffff' : '#666';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
@@ -395,7 +420,6 @@ class Shield {
             ctx.shadowColor = '#00bcd4';
         }
 
-        // Рисуем щит
         ctx.beginPath();
         ctx.moveTo(-7, -6);
         ctx.lineTo(0, -10);
@@ -406,7 +430,6 @@ class Shield {
         ctx.closePath();
         ctx.stroke();
 
-        // Снежинка внутри щита
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(0, -4);
@@ -417,7 +440,6 @@ class Shield {
         ctx.lineTo(-3, 2);
         ctx.stroke();
 
-        // Ready pulse
         if (isReady) {
             const pulse = Math.sin(Date.now() * 0.003) * 0.5 + 0.5;
             ctx.strokeStyle = `rgba(0, 188, 212, ${0.3 + pulse * 0.3})`;
@@ -427,7 +449,6 @@ class Shield {
             ctx.stroke();
         }
 
-        // Cooldown Progress
         if (cooldownProgress < 1) {
             ctx.strokeStyle = '#00bcd4';
             ctx.lineWidth = 3;
@@ -447,7 +468,6 @@ class Shield {
             ctx.fillText(remainingTime + 's', 0, 28);
         }
 
-        // Key label [T]
         ctx.font = 'bold 10px Arial';
         ctx.fillStyle = isReady ? '#fff' : '#888';
         ctx.textAlign = 'center';

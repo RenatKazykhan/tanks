@@ -6,8 +6,8 @@ class Wave1 {
         this.width = 35;
         this.height = 35;
         this.speed = 50;
-        this.health = 30;
-        this.maxHealth = 30;
+        this.health = 35;
+        this.maxHealth = 35;
         this.damage = 10;
         this.angle = Math.random() * Math.PI * 2;
         this.bullets = [];
@@ -81,9 +81,6 @@ class Wave1 {
         
         ctx.fillStyle = 'green';
         ctx.fillRect(this.x - healthBarWidth/2, this.y - this.height/2 - 12, healthBarWidth * healthPercentage, healthBarHeight);
-        
-        // Рисуем пули
-        //this.bullets.forEach(bullet => bullet.draw());
     }
     
     takeDamage(damage) {

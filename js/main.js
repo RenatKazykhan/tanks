@@ -60,7 +60,22 @@ const tankStats = {
     visibilityRadius: 300
 };
 
-let hangarRenderer = null;
+// Базовые характеристики танка (константы, никогда не меняются)
+const BASE_TANK_STATS = {
+    health: 200,
+    maxHealth: 200,
+    speed: 100,
+    damage: 30,
+    fireRate: 1100,
+    bulletSpeed: 300,
+    regen: 0,
+    armor: 0,
+    doubleShot: false,
+    lifeSteal: 0,
+    turretRotationSpeed: 1,
+    bodyRotationSpeed: 1,
+    visibilityRadius: 300
+};
 
 // Система модулей танка
 const tankModules = {
@@ -74,8 +89,8 @@ const tankModules = {
         description: 'Увеличивает урон и уменьшает перезарядку',
         getEffects(level) {
             return {
-                damage: tankStats.damage + level * 5,
-                fireRate: Math.max(200, tankStats.fireRate - level * 20)
+                damage: BASE_TANK_STATS.damage + level * 5,
+                fireRate: Math.max(200, BASE_TANK_STATS.fireRate - level * 20)
             };
         },
         getStatsDisplay(level) {
@@ -97,10 +112,10 @@ const tankModules = {
         description: 'Увеличивает прочность, дальность обзора, скорость перезарядки и скорость поворота башни',
         getEffects(level) {
             return {
-                maxHealth: tankStats.maxHealth + level * 30,
-                visibilityRadius: tankStats.visibilityRadius + level * 20,
-                fireRate: Math.max(200, tankStats.fireRate - level * 15),
-                turretRotationSpeed: tankStats.turretRotationSpeed + level * 0.5
+                maxHealth: BASE_TANK_STATS.maxHealth + level * 30,
+                visibilityRadius: BASE_TANK_STATS.visibilityRadius + level * 20,
+                fireRate: Math.max(200, BASE_TANK_STATS.fireRate - level * 15),
+                turretRotationSpeed: BASE_TANK_STATS.turretRotationSpeed + level * 0.5
             };
         },
         getStatsDisplay(level) {
@@ -119,12 +134,12 @@ const tankModules = {
         icon: '⚙️',
         level: 0,
         maxLevel: 10,
-        baseCost: 50,
+        baseCost: 1,
         costMultiplier: 1.4,
         description: 'Увеличивает скорость движения танка',
         getEffects(level) {
             return {
-                speed: tankStats.speed + level * 12
+                speed: BASE_TANK_STATS.speed + level * 12
             };
         },
         getStatsDisplay(level) {
@@ -140,12 +155,12 @@ const tankModules = {
         icon: '🛞',
         level: 0,
         maxLevel: 10,
-        baseCost: 50,
+        baseCost: 1,
         costMultiplier: 1.4,
         description: 'Увеличивает скорость поворота танка',
         getEffects(level) {
             return {
-                bodyRotationSpeed: tankStats.bodyRotationSpeed + level * 0.3
+                bodyRotationSpeed: BASE_TANK_STATS.bodyRotationSpeed + level * 0.3
             };
         },
         getStatsDisplay(level) {
@@ -166,7 +181,7 @@ const tankModules = {
         description: 'Увеличивает скорость снаряда',
         getEffects(level) {
             return {
-                bulletSpeed: tankStats.bulletSpeed + level * 30
+                bulletSpeed: BASE_TANK_STATS.bulletSpeed + level * 30
             };
         },
         getStatsDisplay(level) {
@@ -187,9 +202,9 @@ const tankModules = {
         description: 'Увеличивает прочность, броню и регенерацию',
         getEffects(level) {
             return {
-                maxHealth: tankStats.maxHealth + level * 25,
-                armor: Math.min(70, tankStats.armor + level * 1),
-                regen: tankStats.regen + level * 1
+                maxHealth: BASE_TANK_STATS.maxHealth + level * 25,
+                armor: Math.min(70, BASE_TANK_STATS.armor + level * 1),
+                regen: BASE_TANK_STATS.regen + level * 1
             };
         },
         getStatsDisplay(level) {
@@ -213,6 +228,9 @@ function getModuleCost(moduleName) {
 
 // Пересчёт tankStats из уровней модулей
 function recalcTankStats() {
+    // Сначала сбрасываем к базовым значениям
+    Object.assign(tankStats, { ...BASE_TANK_STATS });
+
     const gunEff = tankModules.gun.getEffects(tankModules.gun.level);
     const turretEff = tankModules.turret.getEffects(tankModules.turret.level);
     const tracksEff = tankModules.tracks.getEffects(tankModules.tracks.level);
@@ -221,11 +239,18 @@ function recalcTankStats() {
     const hullEff = tankModules.hull.getEffects(tankModules.hull.level);
 
     tankStats.damage = gunEff.damage;
-    // fireRate = лучшее из орудие и башня
-    tankStats.fireRate = Math.min(gunEff.fireRate, turretEff.fireRate);
-    // maxHealth = max из башня и корпус
-    tankStats.maxHealth = Math.max(turretEff.maxHealth, hullEff.maxHealth);
+
+    // Складываем бонусы перезарядки от орудия и башни
+    const gunFireRateBonus = BASE_TANK_STATS.fireRate - gunEff.fireRate;
+    const turretFireRateBonus = BASE_TANK_STATS.fireRate - turretEff.fireRate;
+    tankStats.fireRate = Math.max(200, BASE_TANK_STATS.fireRate - gunFireRateBonus - turretFireRateBonus);
+
+    // Складываем бонусы здоровья от башни и корпуса
+    const turretHealthBonus = turretEff.maxHealth - BASE_TANK_STATS.maxHealth;
+    const hullHealthBonus = hullEff.maxHealth - BASE_TANK_STATS.maxHealth;
+    tankStats.maxHealth = BASE_TANK_STATS.maxHealth + turretHealthBonus + hullHealthBonus;
     tankStats.health = tankStats.maxHealth;
+
     tankStats.visibilityRadius = turretEff.visibilityRadius;
     tankStats.turretRotationSpeed = turretEff.turretRotationSpeed;
     tankStats.speed = engineEff.speed;
@@ -302,10 +327,8 @@ function upgradeModule() {
     if (points < cost) return;
 
     points -= cost;
-    mod.level++;
-    recalcTankStats();
-
-    // Сохраняем
+    mod.level++;          
+    recalcTankStats();   
     saveModules();
 
     // Обновляем UI
@@ -773,61 +796,6 @@ function createWalls() {
     return mapManager.createMapFromLayout(mapKey, player, walls, powerUps, stage2Zones, stage2Turrets, stage2Enemies);
 }
 
-// Функция улучшения характеристик
-function upgrade(stat) {
-    if (points >= upgradeCosts[stat]) {
-        points -= upgradeCosts[stat];
-
-        switch (stat) {
-            case 'health':
-                tankStats.maxHealth += 25;
-                tankStats.health = tankStats.maxHealth;
-                document.getElementById('healthValue').textContent = tankStats.maxHealth;
-                upgradeCosts.health += 50;
-                break;
-            case 'speed':
-                tankStats.speed += 10;
-                document.getElementById('speedValue').textContent = tankStats.speed.toFixed(1);
-                upgradeCosts.speed += 50;
-                break;
-            case 'damage':
-                tankStats.damage += 5;
-                document.getElementById('damageValue').textContent = tankStats.damage;
-                upgradeCosts.damage += 50;
-                break;
-            case 'fireRate':
-                tankStats.fireRate = Math.max(100, tankStats.fireRate - 25);
-                document.getElementById('fireRateValue').textContent = tankStats.fireRate + 'ms';
-                upgradeCosts.fireRate += 50;
-                break;
-            case 'bulletSpeed':
-                tankStats.bulletSpeed += 25;
-                document.getElementById('bulletSpeedValue').textContent = tankStats.bulletSpeed;
-                upgradeCosts.bulletSpeed += 50;
-                break;
-            case 'regen':
-                tankStats.regen += 1;
-                document.getElementById('regenValue').textContent = tankStats.regen;
-                upgradeCosts.regen += 50;
-                break;
-            case 'armor':
-                tankStats.armor = Math.min(70, tankStats.armor + 2);;
-                document.getElementById('armorValue').textContent = tankStats.armor;
-                upgradeCosts.armor += 50;
-                break;
-            case 'lifeSteal':
-                tankStats.lifeSteal = tankStats.lifeSteal + 0.01;
-                document.getElementById('lifeStealValue').textContent = tankStats.lifeSteal.toFixed(2) * 100 + '%';
-                upgradeCosts.lifeSteal += 50;
-                break;
-        }
-
-        localStorage.setItem('tankGameStats', JSON.stringify(tankStats));
-
-        updateUIManager.updateUpgradeUI();
-    }
-}
-
 function enemyDead(x, y) {
     createExplosion(x, y); // создает взрывы
     soundManager.playExplosion();
@@ -1006,16 +974,15 @@ function updateStagesUI() {
 }
 
 function startGame() {
-    // Останавливаем ангарный рендерер
-    if (typeof hangarRenderer !== 'undefined' && hangarRenderer) {
-        hangarRenderer.stop();
-    }
-
     minimapCanvas.style.display = 'block';
     mainMenu.style.display = 'none';
     canvas.style.display = 'block';
     gameContainer.style.display = 'block';
     gameInfo.style.display = 'flex';
+
+    loadModules();            
+    recalcTankStats();         
+    player.setStat(tankStats); 
 
     resetGame();
 }
@@ -1026,19 +993,6 @@ function resetGame() {
     document.getElementById('pauseBtn').disabled = false;
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
-    player.maxHealth = tankStats.maxHealth;
-    player.health = tankStats.maxHealth;
-    player.speed = tankStats.speed;
-    player.damage = tankStats.damage;
-    player.shotCooldown = tankStats.fireRate;
-    player.bulletSpeed = tankStats.bulletSpeed;
-    player.regen = tankStats.regen;
-    player.armor = tankStats.armor;
-    player.timberSawDamage = tankStats.timberSawDamage;
-    player.lifeSteal = tankStats.lifeSteal || 0;
-    player.turretRotationSpeed = tankStats.turretRotationSpeed || 5;
-    player.bodyRotationSpeed = tankStats.bodyRotationSpeed || 3;
-    player.visibilityRadius = tankStats.visibilityRadius || 300;
     player.bullets = [];
     player.bodyAngle = 0;
     player.turretAngle = 0;
@@ -1169,6 +1123,7 @@ function gameOver() {
 function backToMenu() {
     minimapCanvas.style.display = 'none';
     loadModules();
+    recalcTankStats();
 
     points += Math.floor(score / 20);
     localStorage.setItem('tankGamePoints', points);
@@ -1178,14 +1133,13 @@ function backToMenu() {
     gameInfo.style.display = 'none';
     mainMenu.style.display = 'flex';
 
-    // Обновляем UI этапов при возврате в меню
     updateStagesUI();
-
     updateUIManager.updateUpgradeUI();
+    updateAllModuleBadges();
+    document.getElementById('pointsValue').textContent = points;
 
-    // Перезапускаем ангар
-    if (typeof hangarRenderer !== 'undefined' && hangarRenderer) {
-        hangarRenderer.start();
+    if (selectedModuleName) {
+        updateModulePanel(selectedModuleName);
     }
 }
 
@@ -1234,10 +1188,6 @@ function init() {
 
     // Инициализируем обработчики событий
     initEventHandlers();
-
-    // Инициализируем ангарный рендерер
-    hangarRenderer = new HangarRenderer('hangarCanvas');
-    hangarRenderer.start();
 }
 
 function toggleSound() {
@@ -1250,20 +1200,17 @@ document.addEventListener('DOMContentLoaded', init);
 
 // Функция сброса всех характеристик
 function resetAllStats() {
-    // Сбрасываем все модули на уровень 0
     for (const key in tankModules) {
         tankModules[key].level = 0;
     }
-    //recalcTankStats();
+    recalcTankStats();    // ✅ Пересчёт вернёт к базовым значениям
     saveModules();
 
     recordScore = 0;
     localStorage.setItem('tankGameRecord', recordScore);
-    localStorage.setItem('tankGameStats', JSON.stringify(tankStats));
     updateUIManager.updateUpgradeUI();
     updateAllModuleBadges();
 
-    // Обновляем панель выбранного модуля
     if (selectedModuleName) {
         updateModulePanel(selectedModuleName);
     }

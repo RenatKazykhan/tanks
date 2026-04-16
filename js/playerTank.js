@@ -704,16 +704,18 @@ class PlayerTank {
         }
 
         // Сначала урон идёт по щиту
-        if (this.shieldSkill.hasShield && this.shieldSkill.shieldAmount > 0 && !this.shieldSkill.shieldBroken) {
-            const shieldDamage = Math.min(damage, this.shieldSkill.shieldAmount);
-            this.shieldSkill.shieldAmount -= shieldDamage;
+        if (this.shieldSkill.hasShield && this.shield > 0) {
+            const shieldDamage = Math.min(this.shield, damage);
+            this.shield -= shieldDamage;
             damage -= shieldDamage;
-            statManager.blockedByShield += shieldDamage;
 
-            if (this.shieldSkill.shieldAmount <= 0) {
-                this.shieldSkill.shieldBroken = true;
-                this.shieldSkill.lastShieldBreak = Date.now();
-                this.shieldSkill.shieldAmount = 0;
+            if (this.shieldSkill) {
+                this.shieldSkill.onShieldDamaged(shieldDamage);
+            }
+
+            // Если щит полностью разрушен
+            if (this.shield <= 0) {
+                this.shield = 0;
             }
         }
 
@@ -753,5 +755,20 @@ class PlayerTank {
                 size: Math.random() * 6 + 3
             });
         }
+    }
+
+    setStat(tankStats)
+    {
+        this.speed = tankStats.speed;
+        this.health = tankStats.maxHealth;
+        this.maxHealth = tankStats.maxHealth;
+        this.damage = tankStats.damage;
+        this.shotCooldown = tankStats.fireRate;
+        this.bulletSpeed = tankStats.bulletSpeed;
+        this.shotCooldown = tankStats.fireRate;
+        this.bulletSpeed = tankStats.bulletSpeed;
+        this.visibilityRadius = tankStats.visibilityRadius || 300;
+        this.turretRotationSpeed = tankStats.turretRotationSpeed || 5;
+        this.bodyRotationSpeed = tankStats.bodyRotationSpeed || 3;
     }
 }
