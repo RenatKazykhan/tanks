@@ -7,7 +7,7 @@ class XPManager {
         this.baseXP = 100;
         this.xpGrowth = 1.4; // множитель роста XP
         this.pendingLevelUp = false;
-        
+
         // Анимация XP-бара
         this.displayXP = 0;  // плавно догоняет реальный xp
         this.flashTimer = 0; // мигание при получении XP
@@ -74,10 +74,10 @@ class XPManager {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        const barWidth = canvas.width * 0.6;
-        const barHeight = 16;
+        const barWidth = canvas.width * 0.3;
+        const barHeight = 10;
         const barX = (canvas.width - barWidth) / 2;
-        const barY = canvas.height - 24;
+        const barY = canvas.height - 16;
         const progress = Math.min(1, this.displayXP / this.xpToNext);
 
         // Фон бара
@@ -160,76 +160,22 @@ class XPManager {
     }
 
     levelUp(player) {
-        player.damage += 13;
-        player.health += 35;
-        player.maxHealth += 35;
-        player.bulletSpeed = +30;
+        player.damage += 7;
+        player.health += 25;
+        player.maxHealth += 25;
+        player.bulletSpeed += 20;
+        player.shotCooldown -= 10;
+        player.turretRotationSpeed += 0.1;
+        player.bodyRotationSpeed += 0.1;
+        player.visibilityRadius += 10;
+        fogOfWar.setVisibilityRadius(player.visibilityRadius);
     }
 
-     abilities = {
-        lightning: {
-            name: "Цепная молния",
-            description: "Увеличвает количество прыжков на <span class='bonus-value'>1</span>.",
-            apply: (player) => {
-                player.maxChainTargets += 1;
-            }
-        },
-        regen: {
-            name: "Быстрая регенерация",
-            description: "Увеличвает восстановление от способности на <span class='bonus-value'>5 HP/секунду</span>.",
-            apply: (player) => {
-                player.rapidRegenAmount += 5;
-            }
-        },
-        doubleShot: {
-            name: "Двойной выстрел",
-            description: "С вероятностью 25% выпускает <span class='bonus-value'>2 снаряда</span> за выстрел",
-            apply: (player) => {
-                player.doubleShot = true;
-            }
-        },
-        lifeSteal: {
-            name: "Вампиризм",
-            description: "Увеличивает вампиризм на <span class='bonus-value'>2%</span>",
-            apply: (player) => {
-                player.lifeSteal += 0.02;
-            }
-        },
-        shield: {
-            name: "Аура щита",
-            description: "Дает ауру щита поглощающий урон. Поглащает <span class='bonus-value'>100 урона</span>. Восстанавливается <span class='bonus-value'>5 ед/сек</span>, задержка перед регенерацией <span class='bonus-value'>3 секунды</span>",
-            apply: (player) => {
-                player.hasShield = true;
-                player.shield = 100;
-                player.maxShield = 100;
-                player.shieldRegenRate = 5;
-            }
-        },
-        teleport: {
-            name: "Телепорт",
-            description: "Добавляет способность телепорт по нажатию кнопки <span class='bonus-value'>E</span> на расстояние <span class='bonus-value'>200</span>. Перезарядка <span class='bonus-value'>10 секунд</span>",
-            apply: (player) => {
-                player.canTeleport = true;
-            }
-        },
-        explode: {
-            name: "Взрыв",
-            description: "Добавляет способность взрыв по нажатию кнопку <span class='bonus-value'>Q</span>. Урон от взрыва  <span class='bonus-value'>50</span> и радиус <span class='bonus-value'>150</span>. Перезарядка <span class='bonus-value'>10 секунд</span>",
-            apply: (player) => {
-                player.hasEnergyBlast = true;
-            }
-        },
-        droneKamikaze: {
-            name: "Дрон-камикадзе",
-            description: "Автоматически запускает дрон-камикадзе каждые <span class='bonus-value'>3 секунды</span>. Дрон летит к ближайшему врагу и взрывается, нанося урон по области.",
-            apply: (player) => {
-                player.hasDroneKamikaze = true;
-                player.droneDamage = 50;
-                player.droneCooldown = 3000;
-                player.droneExplosionRadius = 60;
-            }
-        }
-    };
+    takeBonus(palyer) {
+        player.damage += 7;
+        player.health += 25;
+        player.maxHealth += 25;
+    }
 }
 
 

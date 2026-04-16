@@ -53,6 +53,9 @@ class LightningBullet {
             this.lightningChain.push({x: nearestEnemy.x, y: nearestEnemy.y});
             lastTarget = nearestEnemy;
             nearestEnemy.takeDamage(remainingDamage);
+            if (!nearestEnemy.active) {
+                enemyDead(nearestEnemy.x, nearestEnemy.y);
+            }
             
             // Уменьшаем урон для следующих целей (на 20% каждый прыжок)
             remainingDamage *= 0.8;
@@ -77,6 +80,9 @@ class LightningBullet {
                     this.lightningChain.push({x: nextTarget.x, y: nextTarget.y});
                     lastTarget = nextTarget;
                     nextTarget.takeDamage(remainingDamage);
+                    if (!nextTarget.active) {
+                        enemyDead(nextTarget.x, nextTarget.y);
+                    }
                     remainingDamage *= 0.8;
                 } else {
                     break;

@@ -45,29 +45,315 @@ let points = 0;
 
 // Характеристики танка
 const tankStats = {
-    health: 300,
-    maxHealth: 300,
-    speed: 120,
+    health: 200,
+    maxHealth: 200,
+    speed: 100,
     damage: 30,
-    fireRate: 500,
+    fireRate: 1100,
     bulletSpeed: 300,
     regen: 0,
     armor: 0,
     doubleShot: false,
-    lifeSteal: 0
+    lifeSteal: 0,
+    turretRotationSpeed: 1,
+    bodyRotationSpeed: 1,
+    visibilityRadius: 300
 };
 
-// Цены улучшений
+let hangarRenderer = null;
+
+// Система модулей танка
+const tankModules = {
+    gun: {
+        name: 'Орудие',
+        icon: '🔫',
+        level: 0,
+        maxLevel: 10,
+        baseCost: 50,
+        costMultiplier: 1.4,
+        description: 'Увеличивает урон и уменьшает перезарядку',
+        getEffects(level) {
+            return {
+                damage: tankStats.damage + level * 5,
+                fireRate: Math.max(200, tankStats.fireRate - level * 20)
+            };
+        },
+        getStatsDisplay(level) {
+            const e = this.getEffects(level);
+            const next = level < this.maxLevel ? this.getEffects(level + 1) : null;
+            return [
+                { label: '🔫 Урон', value: e.damage, next: next ? next.damage : null },
+                { label: '🚀 Перезарядка', value: e.fireRate + 'мс', next: next ? next.fireRate + 'мс' : null }
+            ];
+        }
+    },
+    turret: {
+        name: 'Башня',
+        icon: '🗼',
+        level: 0,
+        maxLevel: 10,
+        baseCost: 60,
+        costMultiplier: 1.4,
+        description: 'Увеличивает прочность, дальность обзора, скорость перезарядки и скорость поворота башни',
+        getEffects(level) {
+            return {
+                maxHealth: tankStats.maxHealth + level * 30,
+                visibilityRadius: tankStats.visibilityRadius + level * 20,
+                fireRate: Math.max(200, tankStats.fireRate - level * 15),
+                turretRotationSpeed: tankStats.turretRotationSpeed + level * 0.5
+            };
+        },
+        getStatsDisplay(level) {
+            const e = this.getEffects(level);
+            const next = level < this.maxLevel ? this.getEffects(level + 1) : null;
+            return [
+                { label: '❤️ Прочность', value: e.maxHealth, next: next ? next.maxHealth : null },
+                { label: '👁️ Обзор', value: e.visibilityRadius, next: next ? next.visibilityRadius : null },
+                { label: '🚀 Перезарядка', value: e.fireRate + 'мс', next: next ? next.fireRate + 'мс' : null },
+                { label: '🔄 Поворот башни', value: e.turretRotationSpeed.toFixed(1), next: next ? next.turretRotationSpeed.toFixed(1) : null }
+            ];
+        }
+    },
+    engine: {
+        name: 'Мотор',
+        icon: '⚙️',
+        level: 0,
+        maxLevel: 10,
+        baseCost: 50,
+        costMultiplier: 1.4,
+        description: 'Увеличивает скорость движения танка',
+        getEffects(level) {
+            return {
+                speed: tankStats.speed + level * 12
+            };
+        },
+        getStatsDisplay(level) {
+            const e = this.getEffects(level);
+            const next = level < this.maxLevel ? this.getEffects(level + 1) : null;
+            return [
+                { label: '⚡ Скорость', value: e.speed, next: next ? next.speed : null }
+            ];
+        }
+    },
+    tracks: {
+        name: 'Гусеницы',
+        icon: '🛞',
+        level: 0,
+        maxLevel: 10,
+        baseCost: 50,
+        costMultiplier: 1.4,
+        description: 'Увеличивает скорость поворота танка',
+        getEffects(level) {
+            return {
+                bodyRotationSpeed: tankStats.bodyRotationSpeed + level * 0.3
+            };
+        },
+        getStatsDisplay(level) {
+            const e = this.getEffects(level);
+            const next = level < this.maxLevel ? this.getEffects(level + 1) : null;
+            return [
+                { label: '🔄 Поворот корпуса', value: e.bodyRotationSpeed.toFixed(1), next: next ? next.bodyRotationSpeed.toFixed(1) : null }
+            ];
+        }
+    },
+    shells: {
+        name: 'Снаряды',
+        icon: '🎯',
+        level: 0,
+        maxLevel: 10,
+        baseCost: 50,
+        costMultiplier: 1.4,
+        description: 'Увеличивает скорость снаряда',
+        getEffects(level) {
+            return {
+                bulletSpeed: tankStats.bulletSpeed + level * 30
+            };
+        },
+        getStatsDisplay(level) {
+            const e = this.getEffects(level);
+            const next = level < this.maxLevel ? this.getEffects(level + 1) : null;
+            return [
+                { label: '💨 Скорость снаряда', value: e.bulletSpeed, next: next ? next.bulletSpeed : null }
+            ];
+        }
+    },
+    hull: {
+        name: 'Корпус',
+        icon: '🛡️',
+        level: 0,
+        maxLevel: 10,
+        baseCost: 60,
+        costMultiplier: 1.4,
+        description: 'Увеличивает прочность, броню и регенерацию',
+        getEffects(level) {
+            return {
+                maxHealth: tankStats.maxHealth + level * 25,
+                armor: Math.min(70, tankStats.armor + level * 1),
+                regen: tankStats.regen + level * 1
+            };
+        },
+        getStatsDisplay(level) {
+            const e = this.getEffects(level);
+            const next = level < this.maxLevel ? this.getEffects(level + 1) : null;
+            return [
+                { label: '❤️ Прочность', value: e.maxHealth, next: next ? next.maxHealth : null },
+                { label: '🛡️ Броня', value: e.armor + '%', next: next ? next.armor + '%' : null },
+                { label: '♻️ Регенерация', value: e.regen + ' hp/с', next: next ? next.regen + ' hp/с' : null }
+            ];
+        }
+    }
+};
+
+// Вычисление стоимости улучшения модуля
+function getModuleCost(moduleName) {
+    const mod = tankModules[moduleName];
+    if (!mod || mod.level >= mod.maxLevel) return Infinity;
+    return Math.floor(mod.baseCost * Math.pow(mod.costMultiplier, mod.level));
+}
+
+// Пересчёт tankStats из уровней модулей
+function recalcTankStats() {
+    const gunEff = tankModules.gun.getEffects(tankModules.gun.level);
+    const turretEff = tankModules.turret.getEffects(tankModules.turret.level);
+    const tracksEff = tankModules.tracks.getEffects(tankModules.tracks.level);
+    const engineEff = tankModules.engine.getEffects(tankModules.engine.level);
+    const shellsEff = tankModules.shells.getEffects(tankModules.shells.level);
+    const hullEff = tankModules.hull.getEffects(tankModules.hull.level);
+
+    tankStats.damage = gunEff.damage;
+    // fireRate = лучшее из орудие и башня
+    tankStats.fireRate = Math.min(gunEff.fireRate, turretEff.fireRate);
+    // maxHealth = max из башня и корпус
+    tankStats.maxHealth = Math.max(turretEff.maxHealth, hullEff.maxHealth);
+    tankStats.health = tankStats.maxHealth;
+    tankStats.visibilityRadius = turretEff.visibilityRadius;
+    tankStats.turretRotationSpeed = turretEff.turretRotationSpeed;
+    tankStats.speed = engineEff.speed;
+    tankStats.bodyRotationSpeed = tracksEff.bodyRotationSpeed;
+    tankStats.bulletSpeed = shellsEff.bulletSpeed;
+    tankStats.armor = hullEff.armor;
+    tankStats.regen = hullEff.regen;
+}
+
+// Текущий выбранный модуль
+let selectedModuleName = null;
+
+// Обновление панели модуля
+function updateModulePanel(moduleName) {
+    selectedModuleName = moduleName;
+    const mod = tankModules[moduleName];
+    if (!mod) return;
+
+    // Подсветка активной кнопки
+    document.querySelectorAll('.module-btn').forEach(btn => {
+        btn.classList.toggle('module-btn-active', btn.dataset.module === moduleName);
+    });
+
+    document.getElementById('moduleDetailIcon').textContent = mod.icon;
+    document.getElementById('moduleDetailName').textContent = mod.name;
+    document.getElementById('moduleDetailLevel').textContent =
+        mod.level >= mod.maxLevel
+            ? `Уровень ${mod.level} / ${mod.maxLevel} — МАКСИМУМ`
+            : `Уровень ${mod.level} / ${mod.maxLevel}`;
+
+    // Статы
+    const statsContainer = document.getElementById('moduleDetailStats');
+    const stats = mod.getStatsDisplay(mod.level);
+    statsContainer.innerHTML = stats.map(s => {
+        const upgradeHint = s.next !== null ? `<span class="module-stat-upgrade">→ ${s.next}</span>` : '';
+        return `<div class="module-stat-row">
+            <span class="module-stat-label">${s.label}</span>
+            <span><span class="module-stat-value">${s.value}</span>${upgradeHint}</span>
+        </div>`;
+    }).join('');
+
+    // Кнопка улучшения
+    const actionsDiv = document.getElementById('moduleDetailActions');
+    const upgradeBtn = document.getElementById('moduleUpgradeBtn');
+    const costSpan = document.getElementById('moduleUpgradeCost');
+
+    if (mod.level >= mod.maxLevel) {
+        actionsDiv.style.display = 'flex';
+        upgradeBtn.disabled = true;
+        costSpan.textContent = 'МАКСИМУМ';
+    } else {
+        const cost = getModuleCost(moduleName);
+        actionsDiv.style.display = 'flex';
+        upgradeBtn.disabled = points < cost;
+        costSpan.textContent = `Улучшить (${cost})`;
+    }
+}
+
+function selectModuleBtn(moduleName) {
+    updateModulePanel(moduleName);
+}
+
+function selectTank(index) {
+    // Пока один танк, ничего не делаем
+}
+
+// Улучшение модуля
+function upgradeModule() {
+    if (!selectedModuleName) return;
+    const mod = tankModules[selectedModuleName];
+    if (!mod || mod.level >= mod.maxLevel) return;
+
+    const cost = getModuleCost(selectedModuleName);
+    if (points < cost) return;
+
+    points -= cost;
+    mod.level++;
+    recalcTankStats();
+
+    // Сохраняем
+    saveModules();
+
+    // Обновляем UI
+    updateModulePanel(selectedModuleName);
+    updateAllModuleBadges();
+    document.getElementById('pointsValue').textContent = points;
+    localStorage.setItem('tankGamePoints', points);
+}
+
+function updateAllModuleBadges() {
+    for (const [key, mod] of Object.entries(tankModules)) {
+        const badge = document.getElementById(key + 'LevelBadge');
+        if (badge) {
+            badge.textContent = `Ур. ${mod.level}`;
+        }
+        const miniFill = document.getElementById(key + 'MiniFill');
+        if (miniFill) {
+            miniFill.style.width = (mod.level / mod.maxLevel * 100) + '%';
+        }
+    }
+}
+
+function saveModules() {
+    const levels = {};
+    for (const [key, mod] of Object.entries(tankModules)) {
+        levels[key] = mod.level;
+    }
+    localStorage.setItem('tankModuleLevels', JSON.stringify(levels));
+    localStorage.setItem('tankGameStats', JSON.stringify(tankStats));
+}
+
+function loadModules() {
+    const saved = localStorage.getItem('tankModuleLevels');
+    if (saved) {
+        const levels = JSON.parse(saved);
+        for (const [key, level] of Object.entries(levels)) {
+            if (tankModules[key]) {
+                tankModules[key].level = level;
+            }
+        }
+        recalcTankStats();
+    }
+}
+
+// Устаревшая функция, оставлена для обратной совместимости
 const upgradeCosts = {
-    health: 50,
-    maxHealth: 50,
-    speed: 50,
-    damage: 50,
-    fireRate: 50,
-    bulletSpeed: 50,
-    regen: 50,
-    armor: 50,
-    lifeSteal: 50
+    health: 50, maxHealth: 50, speed: 50, damage: 50,
+    fireRate: 50, bulletSpeed: 50, regen: 50, armor: 50
 };
 
 // Инициализация игры
@@ -158,7 +444,8 @@ function gameLoop() {
     // Обновление XP
     xpManager.update(deltaTime);
     if (xpManager.checkLevelUp()) {
-        bonusManager.showBonusSelection();
+        player.skillPoints++;
+        xpManager.levelUp(player);
     }
 
     // Затухание красной вспышки
@@ -187,7 +474,8 @@ function gameLoop() {
     // Обновление бонусов
     powerUps = powerUps.filter(powerUp => {
         if (Math.sqrt(Math.pow(player.x - powerUp.x, 2) + Math.pow(player.y - powerUp.y, 2)) < 30) {
-            bonusManager.showBonusSelection();
+            //bonusManager.showBonusSelection();
+            xpManager.takeBonus(player);
             return false;
         }
         return true;
@@ -237,9 +525,9 @@ function gameLoop() {
     if (currentStage === 2) {
         // Обновляем турели
         stage2Turrets.forEach(turret => {
-            if(turret.active == true) {
+            if (turret.active == true) {
                 turret.update(player.x, player.y, deltaTime);
-            
+
                 turret.bullets = turret.bullets.filter(bullet => {
                     let hitWall = false;
                     walls.forEach(wall => {
@@ -257,7 +545,7 @@ function gameLoop() {
                         bullet.active = false;
                     }
                 });
-                
+
                 // Проверяем столкновения пуль игрока с турелями
                 player.bullets.forEach(bullet => {
                     if (bullet.active && checkCollisionManager.checkCollision(bullet, turret, bullet.radius, turret.radius)) {
@@ -314,7 +602,7 @@ function gameLoop() {
         player.lightningBullets = player.lightningBullets.filter(lightning => {
             if (lightning.active) {
                 lightning.update(deltaTime);
-                
+
                 // Статистика засчитывается при попадании
                 return true;
             }
@@ -363,7 +651,6 @@ function gameLoop() {
     });
 
     walls.forEach(wall => biomeManager.drawWall(wall));
-    player.draw();
 
     if (currentStage === 2) {
         stage2Turrets.forEach(turret => {
@@ -424,6 +711,12 @@ function gameLoop() {
     // Отображаем туман войны
     fogOfWar.render();
 
+    // Отрисовка игрока поверх тумана с учетом камеры
+    ctx.save();
+    ctx.translate(-camera.x + cameraShake.offsetX, -camera.y + cameraShake.offsetY);
+    player.draw();
+    ctx.restore();
+
     // XP-бар
     xpManager.draw();
     checkVictoryCondition();
@@ -431,9 +724,17 @@ function gameLoop() {
 }
 
 function updateCamera() {
-    // Камера центрируется на игроке
-    camera.x = player.x - camera.width / 2;
-    camera.y = player.y - camera.height / 2;
+    const targetX = player.x - camera.width / 2;
+    const targetY = player.y - camera.height / 2;
+
+    // Плавное движение камеры (lerp)
+    const lerpSpeed = 15;
+    camera.x += (targetX - camera.x) * lerpSpeed * deltaTime;
+    camera.y += (targetY - camera.y) * lerpSpeed * deltaTime;
+
+    // Устраняем микро-дрожание при малых смещениях
+    if (Math.abs(targetX - camera.x) < 0.5) camera.x = targetX;
+    if (Math.abs(targetY - camera.y) < 0.5) camera.y = targetY;
 
     // Не даем камере выйти за границы мира
     camera.x = Math.max(0, Math.min(camera.x, WORLD_WIDTH - camera.width));
@@ -538,7 +839,7 @@ function enemyDead(x, y) {
     xpManager.addXP(20 + Math.floor(xpManager.level * 2));
 
     // Шанс выпадения аптечки при убийстве врага
-    if (Math.random() < 0.15) {
+    if (Math.random() < 0.1) {
         powerUps.push(new PowerUp(x, y, 'health'));
     }
 }
@@ -559,13 +860,13 @@ function checkVictoryCondition() {
     else if (currentStage === 2) {
         // Проверяем, فعال ли босс
         const bossActive = stage2Enemies.some(enemy => enemy instanceof BossTank && enemy.active);
-        
+
         if (!bossActive && !stage2BossDefeated) {
             stage2BossDefeated = true;
             // Показываем выход
             createExitEffect();
         }
-        
+
         checkStage2Exit();
     }
 }
@@ -573,21 +874,21 @@ function checkVictoryCondition() {
 // Функция проверки столкновения прямоугольников
 function checkRectCollision(rect1, rect2) {
     return rect1.x < rect2.x + rect2.width &&
-           rect1.x + rect1.width > rect2.x &&
-           rect1.y < rect2.y + rect2.height &&
-           rect1.y + rect1.height > rect2.y;
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y;
 }
 
 function checkStage2Exit() {
     if (currentStage !== 2 || stage2BossDefeated === false) return;
-    
+
     const playerRect = {
         x: player.x - player.width / 2,
         y: player.y - player.height / 2,
         width: player.width,
         height: player.height
     };
-    
+
     if (checkRectCollision(playerRect, stage2Exit)) {
         showVictory();
     }
@@ -597,7 +898,7 @@ function checkStage2Exit() {
 function createExitEffect() {
     const exitX = stage2Exit.x + stage2Exit.width / 2;
     const exitY = stage2Exit.y + stage2Exit.height / 2;
-    
+
     // Создаем частицы для выхода
     for (let i = 0; i < 30; i++) {
         const angle = (Math.PI * 2 * i) / 30;
@@ -635,23 +936,16 @@ let stage2Exit = { x: 0, y: 0, width: 60, height: 60 };
 let stage2Zones = []; // Зоны появления врагов
 let lastZoneActivation = 0;
 
-// Функция выбора этапа
+// Функция выбора этапа (теперь работает с dropdown)
 function selectStage(stageId) {
-    const stageCard = document.querySelector(`[data-stage="${stageId}"]`);
-    
-    if (stageCard.classList.contains('locked')) {
+    if (!stageUnlocked[stageId]) {
+        // Вернуть dropdown на предыдущее значение
+        document.getElementById('stageSelect').value = currentStage;
         return;
     }
-    
-    // Убираем выделение с предыдущего этапа
-    document.querySelectorAll('.stage-card').forEach(card => {
-        card.classList.remove('current-stage');
-    });
-    
-    // Выделяем выбранный этап
-    stageCard.classList.add('current-stage');
+
     currentStage = stageId;
-    
+
     if (stageId === 2) {
         stage2Progress = 0;
         stage2Enemies = [];
@@ -660,8 +954,18 @@ function selectStage(stageId) {
         stage2Zones = [];
     }
 
+    // Обновляем рекорд
+    updateStageRecordDisplay();
+
     // Сохраняем выбор
     localStorage.setItem('currentStage', currentStage);
+}
+
+function updateStageRecordDisplay() {
+    const recordEl = document.getElementById('stage1-record');
+    if (recordEl) {
+        recordEl.textContent = stageRecords[currentStage] || '0';
+    }
 }
 
 // Функция обновления статусов этапов
@@ -669,45 +973,44 @@ function updateStagesUI() {
     stageRecords = JSON.parse(localStorage.getItem('stageRecords')) || stageRecords;
     stageUnlocked = JSON.parse(localStorage.getItem('stageUnlocked')) || stageUnlocked;
     currentStage = parseInt(localStorage.getItem('currentStage')) || 1;
-    
-    // Обновляем каждый этап
-    for (let i = 1; i <= 2; i++) {
-        const stageCard = document.querySelector(`[data-stage="${i}"]`);
-        const recordElement = document.getElementById(`stage${i}-record`);
-        
-        if (stageRecords[i] > 0) {
-            stageCard.classList.remove('locked');
-            if (!stageCard.classList.contains('completed')) {
-                stageCard.classList.add('completed');
-                stageCard.querySelector('.stage-status').textContent = '✅ ЗАВЕРШЕН';
-                stageUnlocked[i] = true;
+
+    // Обновляем dropdown
+    const stageSelect = document.getElementById('stageSelect');
+    if (stageSelect) {
+        stageSelect.value = currentStage;
+
+        // Обновляем доступность опций
+        for (let i = 1; i <= 2; i++) {
+            const option = stageSelect.querySelector(`option[value="${i}"]`);
+            if (option) {
+                if (stageUnlocked[i]) {
+                    option.disabled = false;
+                    if (stageRecords[i] > 0) {
+                        option.textContent = `${i === 1 ? '🌍' : '🏭'} ${i === 1 ? 'Лесные территории' : 'Промышленная зона'} ✅`;
+                    } else {
+                        option.textContent = `${i === 1 ? '🌍' : '🏭'} ${i === 1 ? 'Лесные территории' : 'Промышленная зона'}`;
+                    }
+                } else {
+                    option.disabled = true;
+                    option.textContent = `🔒 ${i === 1 ? 'Лесные территории' : 'Промышленная зона'}`;
+                }
             }
-        }
-        
-        if (stageUnlocked[i]) {
-            stageCard.classList.remove('locked');
-            if (stageRecords[i] === 0 && i > 1) {
-                stageCard.querySelector('.stage-status').textContent = '▶️ ДОСТУПЕН';
-            }
-        } else {
-            stageCard.classList.add('locked');
-            stageCard.querySelector('.stage-status').textContent = '🔒 ЗАБЛОКИРОВАНО';
-        }
-        
-        recordElement.textContent = stageRecords[i] || '-';
-        
-        // Выделяем текущий этап
-        if (i === currentStage) {
-            stageCard.classList.add('current-stage');
         }
     }
-    
+
+    updateStageRecordDisplay();
+
     // Сохраняем обновленные данные
     localStorage.setItem('stageRecords', JSON.stringify(stageRecords));
     localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
 }
 
 function startGame() {
+    // Останавливаем ангарный рендерер
+    if (typeof hangarRenderer !== 'undefined' && hangarRenderer) {
+        hangarRenderer.stop();
+    }
+
     minimapCanvas.style.display = 'block';
     mainMenu.style.display = 'none';
     canvas.style.display = 'block';
@@ -732,15 +1035,21 @@ function resetGame() {
     player.regen = tankStats.regen;
     player.armor = tankStats.armor;
     player.timberSawDamage = tankStats.timberSawDamage;
-    player.lifeSteal = tankStats.lifeSteal;
+    player.lifeSteal = tankStats.lifeSteal || 0;
+    player.turretRotationSpeed = tankStats.turretRotationSpeed || 5;
+    player.bodyRotationSpeed = tankStats.bodyRotationSpeed || 3;
+    player.visibilityRadius = tankStats.visibilityRadius || 300;
     player.bullets = [];
     player.bodyAngle = 0;
     player.turretAngle = 0;
     player.doubleShot = false;
 
+    camera.x = player.x - camera.width / 2;
+    camera.y = player.y - camera.height / 2;
+
     // Убедитесь что setWalls вызван:
     fogOfWar.setWalls(walls);
-    console.log('Segments:', fogOfWar.wallSegments.length); 
+    console.log('Segments:', fogOfWar.wallSegments.length);
     // Должно быть walls.length * 4
     // щит
     player.hasShield = false;
@@ -749,36 +1058,45 @@ function resetGame() {
     player.shieldRegenRate = 1; // восстановление в секунду
 
     // телепорт
-    player.canTeleport = false;
-    player.teleportCooldown = 10000;
-    player.teleportDistance = 200;
+    player.teleportSkill.level = 0;
+    player.teleportSkill.canTeleport = false;
 
     // взрыв
-    player.hasEnergyBlast = false;
-    player.energyBlastCooldown = 10000;
-    player.energyBlastRadius = 150;
-    player.energyBlastDamage = 100;
+    player.blastSkill.level = 0;
+    player.blastSkill.hasEnergyBlast = false;
 
     // быстрая регенерация
-    player.hasRegen = false;
-    player.rapidRegenDuration = 3000; // 3 секунды
-    player.rapidRegenCooldown = 15000; // 15 секунд перезарядка
-    player.rapidRegenAmount = 15; // HP в секунду
+    player.regenerationSkill.level = 0;
+    player.regenerationSkill.hasRegen = false;
+    player.regenerationSkill.isActive = false;
 
     // цепная молния
-    player.hasChainLightning = false;
-    player.chainLightningDamage = 40;
-    player.chainLightningCooldown = 10000;
-    player.maxChainTargets = 4;
-    player.chainLightningBounceRange = 200;
+    player.chainLightningSkill.level = 0;
+    player.chainLightningSkill.hasChainLightning = false;
+
+    // щит-заморозка
+    player.shieldSkill.level = 0;
+    player.shieldSkill.hasShield = false;
+    player.shieldSkill.isActive = false;
+
+    // вампиризм
+    player.lifestealSkill.level = 0;
+    player.lifestealSkill.hasLifesteal = false;
+    player.lifestealSkill.isActive = false;
+    player.lifeSteal = 0;
+
+    // двойной выстрел
+    player.doubleShootSkill.level = 0;
+    player.doubleShootSkill.hasDoubleShoot = false;
+    player.doubleShot = false;
+    player.doubleShotChance = 0.25;
+
+    player.skillPoints = 4;
 
     // Дрон-камикадзе
-    player.hasDroneKamikaze = false;
-    player.droneDamage = 50;
-    player.droneCooldown = 3000;
-    player.lastDroneTime = 0;
-    player.droneExplosionRadius = 60;
-    player.drones = [];
+    player.droneSkill.level = 0;
+    player.droneSkill.hasDrone = false;
+    player.droneSkill.drones = [];
 
     statManager.reset();
     keys.length = 0;
@@ -815,11 +1133,11 @@ function resetGame() {
         stage2BossDefeated = false;
         stage2Zones = [];
     }
-    
+
     // Используем соответствующую карту
     const mapKey = currentStage === 2 ? 'level2' : 'level1';
     mapManager.createMapFromLayout(mapKey, player, walls, powerUps, stage2Zones, stage2Turrets, stage2Enemies);
-    
+
     // Устанавливаем биом для этапа 2
     if (currentStage === 2) {
         biomeManager.currentBiome = 'lava';
@@ -829,13 +1147,13 @@ function resetGame() {
         biomeManager.init();
     }
 
-        // Инициализация тумана войны
+    // Инициализация тумана войны
     fogOfWar.reset();
     fogOfWar.setWorldSize(WORLD_WIDTH, WORLD_HEIGHT);
     fogOfWar.init();
     fogOfWar.setWalls(walls);
     // Убедитесь что стены имеют формат:
-    console.log(walls[0]); 
+    console.log(walls[0]);
     // Должно быть: {x: число, y: число, width: число, height: число}
 
     gameLoop();
@@ -849,24 +1167,26 @@ function gameOver() {
 }
 
 function backToMenu() {
-    const savedStats = localStorage.getItem('tankGameStats');
     minimapCanvas.style.display = 'none';
-    if (savedStats) {
-        Object.assign(tankStats, JSON.parse(savedStats));
-        updateUIManager.updateStatsDisplayMainMenu();
-    }
-    
+    loadModules();
+
     points += Math.floor(score / 20);
+    localStorage.setItem('tankGamePoints', points);
     gameRunning = false;
     canvas.style.display = 'none';
     gameContainer.style.display = 'none';
     gameInfo.style.display = 'none';
-    mainMenu.style.display = 'block';
-    
+    mainMenu.style.display = 'flex';
+
     // Обновляем UI этапов при возврате в меню
     updateStagesUI();
 
     updateUIManager.updateUpgradeUI();
+
+    // Перезапускаем ангар
+    if (typeof hangarRenderer !== 'undefined' && hangarRenderer) {
+        hangarRenderer.start();
+    }
 }
 
 function togglePause() {
@@ -889,6 +1209,7 @@ function createExplosion(x, y, color = '#ff6600') {
 }
 
 // Инициализация обработчиков событий
+
 function init() {
     // Загрузка сохраненного прогресса
     const savedPoints = localStorage.getItem('tankGamePoints');
@@ -902,16 +1223,8 @@ function init() {
         document.getElementById('recordScoreValue').textContent = recordScore;
     }
 
-    const savedStats = localStorage.getItem('tankGameStats');
-    if (savedStats) {
-        Object.assign(tankStats, JSON.parse(savedStats));
-        updateUIManager.updateStatsDisplayMainMenu();
-    }
-
-    const savedCosts = localStorage.getItem('tankGameCosts');
-    if (savedCosts) {
-        Object.assign(upgradeCosts, JSON.parse(savedCosts));
-    }
+    // Загружаем модули
+    loadModules();
 
     // Инициализируем этапы
     updateStagesUI();
@@ -921,6 +1234,10 @@ function init() {
 
     // Инициализируем обработчики событий
     initEventHandlers();
+
+    // Инициализируем ангарный рендерер
+    hangarRenderer = new HangarRenderer('hangarCanvas');
+    hangarRenderer.start();
 }
 
 function toggleSound() {
@@ -933,32 +1250,28 @@ document.addEventListener('DOMContentLoaded', init);
 
 // Функция сброса всех характеристик
 function resetAllStats() {
-    // Сбрасываем характеристики на начальные значения
-    tankStats.health = 300;
-    tankStats.maxHealth = 300;
-    tankStats.speed = 120;
-    tankStats.damage = 30;
-    tankStats.fireRate = 400;
-    tankStats.bulletSpeed = 350;
-    tankStats.regen = 0;
-    tankStats.armor = 0;
-    tankStats.timberSawDamage = 0;
-    tankStats.lifeSteal = 0;
+    // Сбрасываем все модули на уровень 0
+    for (const key in tankModules) {
+        tankModules[key].level = 0;
+    }
+    //recalcTankStats();
+    saveModules();
+
     recordScore = 0;
     localStorage.setItem('tankGameRecord', recordScore);
-    // сбрасываем цены на улучшения
-
-    for (let key in upgradeCosts) {
-        upgradeCosts[key] = 50;
-    }
     localStorage.setItem('tankGameStats', JSON.stringify(tankStats));
-    updateUIManager.updateUpgradeUI(); // Обновляем интерфейс пользователя
-    updateUIManager.updateStatsDisplayMainMenu();
+    updateUIManager.updateUpgradeUI();
+    updateAllModuleBadges();
+
+    // Обновляем панель выбранного модуля
+    if (selectedModuleName) {
+        updateModulePanel(selectedModuleName);
+    }
 }
 
 function drawMinimap() {
 
-     if (currentStage === 2) {
+    if (currentStage === 2) {
         // Отрисовка турелей
         minimapCtx.fillStyle = '#ff00ff';
         stage2Turrets.forEach(turret => {
@@ -971,7 +1284,7 @@ function drawMinimap() {
                 );
             }
         });
-        
+
         // Отрисовка выхода (если активен)
         if (stage2BossDefeated) {
             minimapCtx.fillStyle = '#00ff00';
@@ -982,7 +1295,7 @@ function drawMinimap() {
                 stage2Exit.height * minimapScale.y
             );
         }
-        
+
         // Отрисовка зон активации
         minimapCtx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
         minimapCtx.lineWidth = 1;
@@ -1058,21 +1371,21 @@ function drawMinimap() {
 
 function showVictory() {
     if (isVictory) return;
-    
+
     console.log('Показываем экран победы для этапа', currentStage);
-    
+
     // Сохраняем рекорд этапа
     if (score > stageRecords[currentStage]) {
         stageRecords[currentStage] = score;
         localStorage.setItem('stageRecords', JSON.stringify(stageRecords));
     }
-    
+
     // Разблокируем следующий этап
     if (currentStage === 1 && stageRecords[1] > 0) {
         stageUnlocked[2] = true;
         localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
     }
-    
+
     // Скрываем игровые элементы
     document.getElementById('gameOver').style.display = 'none';
     document.getElementById('pauseScreen').style.display = 'none';
@@ -1100,11 +1413,11 @@ function showVictory() {
 
     // Обновляем статистику
     statManager.update();
-    
+
     // Добавляем очки за победу
     points += 1000;
     localStorage.setItem('tankGamePoints', points);
-    
+
     // Обновляем рекорд если нужно
     if (score > recordScore) {
         recordScore = score;

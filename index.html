@@ -9,88 +9,119 @@
 </head>
 
 <body>
-    <div id="mainMenu">
-        <h1>ТАНКОВАЯ БИТВА</h1>
-        <div id="points">💰 Очки: 0</div>
-
-        <!-- Этапы прохождения -->
-        <div class="stages-container">
-            <h2>Этапы прохождения</h2>
-            <div class="stages-grid">
-                <div class="stage-card stage-1 completed" data-stage="1" onclick="selectStage(1)">
-                    <div class="stage-icon">🌍</div>
-                    <div class="stage-name">Лесные территории</div>
-                    <div class="stage-description">Первый этап в лесном биоме</div>
-                    <div class="stage-record">Рекорд: <span id="stage1-record">0</span></div>
-                    <div class="stage-status">✅ ЗАВЕРШЕН</div>
-                </div>
-                
-                <div class="stage-card stage-2" data-stage="2" onclick="selectStage(2)">
-                    <div class="stage-icon">🏭</div>
-                    <div class="stage-name">Промышленная зона</div>
-                    <div class="stage-description">Второй этап в городе</div>
-                    <div class="stage-record">Рекорд: <span id="stage2-record">-</span></div>
-                    <div class="stage-status">🔒 ЗАБЛОКИРОВАНО</div>
-                </div>
+    <div id="mainMenu" class="hangar-screen">
+        <!-- Шапка -->
+        <div class="hangar-header">
+            <h1 class="hangar-title">ТАНКОВАЯ БИТВА</h1>
+            <div class="hangar-points" id="points">
+                <span class="points-icon">💰</span>
+                <span class="points-label">Очки:</span>
+                <span class="points-value" id="pointsValue">0</span>
             </div>
         </div>
 
-        <div class="stats">
-            <h2>Улучшения характеристик танка</h2>
-
-            <div class="stats-columns">
-                <div class="stat-item">
-                    <span class="stat-name">❤️ Макс. здоровье</span>
-                    <span class="stat-value" id="healthValue">100</span>
-                    <button class="upgrade-btn" onclick="upgrade('health')">Улучшить (50)</button>
+        <!-- Панель управления: этап + старт -->
+        <div class="hangar-controls">
+            <div class="stage-select-wrapper">
+                <label for="stageSelect" class="stage-label">Этап:</label>
+                <select id="stageSelect" class="stage-dropdown" onchange="selectStage(parseInt(this.value))">
+                    <option value="1" data-stage="1">🌍 Лесные территории</option>
+                    <option value="2" data-stage="2" disabled>🔒 Промышленная зона</option>
+                </select>
+                <div class="stage-record-inline">
+                    Рекорд: <span id="stage1-record">0</span>
                 </div>
+            </div>
+            <button id="startBtn" class="start-game-btn" onclick="startGame()">
+                <span class="start-icon">▶</span> НАЧАТЬ ИГРУ
+            </button>
+        </div>
 
-                <div class="stat-item">
-                    <span class="stat-name">⚡ Скорость</span>
-                    <span class="stat-value" id="speedValue">80</span>
-                    <button class="upgrade-btn" onclick="upgrade('speed')">Улучшить (30)</button>
-                </div>
+        <!-- Основная область: модули в две колонки -->
+        <div class="hangar-main">
+            <!-- Кнопки модулей (левая сторона: ходовая часть) -->
+            <div class="module-buttons-left">
+                <button class="module-btn" data-module="engine" onclick="selectModuleBtn('engine')">
+                    <span class="module-btn-icon">⚙️</span>
+                    <span class="module-btn-name">Мотор</span>
+                    <span class="module-btn-level" id="engineLevelBadge">Ур. 0</span>
+                    <div class="module-mini-progress"><div class="module-mini-fill" id="engineMiniFill" style="width: 0%"></div></div>
+                </button>
+                <button class="module-btn" data-module="tracks" onclick="selectModuleBtn('tracks')">
+                    <span class="module-btn-icon">🛞</span>
+                    <span class="module-btn-name">Гусеницы</span>
+                    <span class="module-btn-level" id="tracksLevelBadge">Ур. 0</span>
+                    <div class="module-mini-progress"><div class="module-mini-fill" id="tracksMiniFill" style="width: 0%"></div></div>
+                </button>
+                <button class="module-btn" data-module="hull" onclick="selectModuleBtn('hull')">
+                    <span class="module-btn-icon">🛡️</span>
+                    <span class="module-btn-name">Корпус</span>
+                    <span class="module-btn-level" id="hullLevelBadge">Ур. 0</span>
+                    <div class="module-mini-progress"><div class="module-mini-fill" id="hullMiniFill" style="width: 0%"></div></div>
+                </button>
+            </div>
 
-                <div class="stat-item">
-                    <span class="stat-name">🔫 Урон</span>
-                    <span class="stat-value" id="damageValue">20</span>
-                    <button class="upgrade-btn" onclick="upgrade('damage')">Улучшить (40)</button>
-                </div>
+            <div class="hangar-center-spacer"></div>
 
-                <div class="stat-item">
-                    <span class="stat-name">🚀 Скорострельность</span>
-                    <span class="stat-value" id="fireRateValue">500ms</span>
-                    <button class="upgrade-btn" onclick="upgrade('fireRate')">Улучшить (60)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">⚡ Скорость снаряда</span>
-                    <span class="stat-value" id="bulletSpeedValue">400</span>
-                    <button class="upgrade-btn" onclick="upgrade('bulletSpeed')">Улучшить (60)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">⚙️ Регенерация</span>
-                    <span class="stat-value" id="regenValue">0</span>
-                    <button class="upgrade-btn" onclick="upgrade('regen')">Улучшить (60)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">🛡️ Броня</span>
-                    <span class="stat-value" id="armorValue">0</span>
-                    <button class="upgrade-btn" onclick="upgrade('armor')">Улучшить (70)</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="stat-name">🩸 Вампиризм</span>
-                    <span class="stat-value" id="lifeStealValue">5%</span>
-                    <button class="upgrade-btn" onclick="upgrade('lifeSteal')">Улучшить (60)</button>
-                </div>
+            <!-- Кнопки модулей (правая сторона: вооружение) -->
+            <div class="module-buttons-right">
+                <button class="module-btn" data-module="gun" onclick="selectModuleBtn('gun')">
+                    <span class="module-btn-icon">🔫</span>
+                    <span class="module-btn-name">Орудие</span>
+                    <span class="module-btn-level" id="gunLevelBadge">Ур. 0</span>
+                    <div class="module-mini-progress"><div class="module-mini-fill" id="gunMiniFill" style="width: 0%"></div></div>
+                </button>
+                <button class="module-btn" data-module="turret" onclick="selectModuleBtn('turret')">
+                    <span class="module-btn-icon">🗼</span>
+                    <span class="module-btn-name">Башня</span>
+                    <span class="module-btn-level" id="turretLevelBadge">Ур. 0</span>
+                    <div class="module-mini-progress"><div class="module-mini-fill" id="turretMiniFill" style="width: 0%"></div></div>
+                </button>
+                <button class="module-btn" data-module="shells" onclick="selectModuleBtn('shells')">
+                    <span class="module-btn-icon">🎯</span>
+                    <span class="module-btn-name">Снаряды</span>
+                    <span class="module-btn-level" id="shellsLevelBadge">Ур. 0</span>
+                    <div class="module-mini-progress"><div class="module-mini-fill" id="shellsMiniFill" style="width: 0%"></div></div>
+                </button>
             </div>
         </div>
 
-        <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn">Сбросить</button>
-        <button id="startBtn" onclick="startGame()">НАЧАТЬ ИГРУ</button>
+        <!-- Панель деталей модуля -->
+        <div class="module-detail-panel" id="moduleDetailPanel">
+            <div class="module-detail-header">
+                <span class="module-detail-icon" id="moduleDetailIcon">🔫</span>
+                <div class="module-detail-title-wrapper">
+                    <h3 class="module-detail-name" id="moduleDetailName">Выберите модуль</h3>
+                    <div class="module-detail-level" id="moduleDetailLevel">Кликните на модуль для просмотра</div>
+                </div>
+            </div>
+
+            <div class="module-detail-stats" id="moduleDetailStats">
+                <!-- Заполняется динамически -->
+            </div>
+            <div class="module-detail-actions" id="moduleDetailActions" style="display: none;">
+                <button class="module-upgrade-btn" id="moduleUpgradeBtn" onclick="upgradeModule()">
+                    <span class="upgrade-cost-icon">💰</span>
+                    <span id="moduleUpgradeCost">Улучшить (50)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Выбор танка -->
+        <div class="tank-selector">
+            <div class="tank-selector-label">Выбор танка</div>
+            <div class="tank-cards">
+                <div class="tank-card tank-card-selected" onclick="selectTank(0)">
+                    <div class="tank-card-icon">🟢</div>
+                    <div class="tank-card-name">Т-34</div>
+                    <div class="tank-card-badge">ВЫБРАН</div>
+                </div>
+            </div>
+            <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn-new">⟲ Сбросить улучшения</button>
+        </div>
+
+        <!-- Скрытые поля для обратной совместимости -->
+        <span id="stage2-record" style="display:none">-</span>
     </div>
 
     <div id="gameContainer">
@@ -231,15 +262,7 @@
                     <!-- Способности -->
                     <div class="stats-section">
                         <h3>💥 Способности</h3>
-                        <div>💣 Урон от взрыва: <span id="energyBlastDamageIngame">0</span></div>
-                        <div>📏 Радиус взрыва: <span id="energyBlastRadiusIngame">0</span></div>
-                        <div>⏱️ Перезарядка взрыва: <span id="energyBlastCooldownIngame">0s</span></div>
-                        <div>📏 Дистанция телепорта: <span id="teleportDistanceIngame">0</span></div>
-                        <div>⏱️ Перезарядка телепорта: <span id="teleportCooldownIngame">0s</span></div>
-                        <div>⚡ Урон от цепной молнии: <span id="lightningDamageIngame">0</span></div>
-                        <div>📊 Количество прыжков: <span id="lightningCountIngame">0s</span></div>
-                        <div>📏 Радиус прыжка молнии: <span id="lightningRadiusIngame">0</span></div>
-                        <div>⏱️ Перезарядка цепной молнии: <span id="lightningCooldownIngame">0s</span></div>
+                        <div id="skillsGrid" class="skills-grid"></div>
                     </div>
                 </div>
                 <p>Нажмите ESC или кнопку "Продолжить" для возобновления игры</p>
@@ -268,7 +291,15 @@
     <script src="js/bullets/lightningBullet.js"></script>
     <script src="js/entyties/powerUp.js"></script>
 
+    <script src="js/skills/upgradeSkillButton.js"></script>
     <script src="js/skills/chainLightning.js"></script>
+    <script src="js/skills/blast.js"></script>
+    <script src="js/skills/regenaration.js"></script>
+    <script src="js/skills/teleport.js"></script>
+    <script src="js/skills/shield.js"></script>
+    <script src="js/skills/lifesteal.js"></script>
+    <script src="js/skills/doubleShoot.js"></script>
+    <script src="js/managers/drone.js"></script>
 
     <script src="js/playerTank.js"></script>
 
@@ -305,6 +336,7 @@
     <script src="js/managers/checkCollisionsManager.js"></script>
     <script src="js/managers/enemySpawnManager.js"></script>
     <script src="js/managers/mapManager.js"></script>
+
     <script src="js/managers/fogOfWarManager.js"></script>
     <script src="js/main.js"></script>
 </body>
