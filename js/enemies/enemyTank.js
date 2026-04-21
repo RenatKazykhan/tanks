@@ -14,6 +14,7 @@ class EnemyTank {
         this.lastShot = 0;
         this.shotCooldown = 2000;
         this.active = true;
+        this.attackRange = 250;
     }
     
     update(playerX, playerY, deltaTime, playerBullets = [], walls = []) {
@@ -22,7 +23,7 @@ class EnemyTank {
         const dy = playerY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 150) {
+        if (distance > this.attackRange) {
             this.angle = Math.atan2(dy, dx);
             this.x += Math.cos(this.angle) * this.speed * deltaTime;
             this.y += Math.sin(this.angle) * this.speed * deltaTime;

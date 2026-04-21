@@ -68,10 +68,6 @@ class MachineGunTank extends EnemyTank {
             this.handlePatrol(dirToPlayerX, dirToPlayerY);
         }
         
-        // Ограничение позиции в пределах canvas
-        this.x = Math.max(this.width/2, Math.min(canvas.width - this.width/2, this.x));
-        this.y = Math.max(this.height/2, Math.min(canvas.height - this.height/2, this.y));
-        
         // Обновление пуль
         this.bullets = this.bullets.filter(bullet => {
             bullet.update(deltaTime);

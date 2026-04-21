@@ -6,14 +6,13 @@ function initEventHandlers() {
     window.addEventListener('beforeunload', () => {
         localStorage.setItem('tankGamePoints', points);
         localStorage.setItem('tankGameRecord', recordScore);
-        localStorage.setItem('tankGameStats', JSON.stringify(tankStats));
         localStorage.setItem('tankGameCosts', JSON.stringify(upgradeCosts));
     });
 
     // Обработчики клавиатуры
     window.addEventListener('keydown', (e) => {
-        // Прокачка способностей через Ctrl
-        if (e.ctrlKey) {
+        // Прокачка способностей через alt
+        if (e.altKey) {
             if (e.key.toLowerCase() === 'f' && player.chainLightningSkill) {
                 player.chainLightningSkill.upgrade();
                 e.preventDefault();
@@ -57,8 +56,8 @@ function initEventHandlers() {
         }
 
         keys[e.key] = true;
-        if (e.key === ' ' && gameRunning) {
-            player.shoot();
+        if (e.key === ' ') {
+            e.preventDefault(); // отключаем скролл страницы
         }
         // Дополнительные клавиши для управления
         if (e.key === 'Escape') {

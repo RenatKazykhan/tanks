@@ -1,4 +1,3 @@
-// Класс для вражеского танка
 class CheckCollisionManager {
     constructor() {
 

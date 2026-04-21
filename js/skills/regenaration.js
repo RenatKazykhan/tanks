@@ -17,7 +17,7 @@ class Regeneration {
         this.duration = 3000; // 3 секунды
         this.cooldown = 15000;
         this.regenAmount = 15; // HP в секунду
-
+        this.passiveRegen = 0;
         this.particles = [];
 
         // Инициализируем кнопку апгрейда
@@ -29,10 +29,10 @@ class Regeneration {
     updateLevel() {
         this.level = Math.min(this.maxLevel, Math.max(1, this.level));
 
-        // Характеристики зависят от уровня
+        this.passiveRegen = this.level * 3; // 3, 6, 9, 12, 15
         this.regenAmount = 15 + (this.level - 1) * 10; // 15, 25, 35, 45, 55
 
-        const cooldownMap = [0, 15000, 14000, 13000, 12000, 10000];
+        const cooldownMap = [0, 15000, 12000, 10000, 8000, 6000];
         this.cooldown = cooldownMap[this.level] || 15000;
     }
 
@@ -47,6 +47,7 @@ class Regeneration {
                 this.cooldown = 15000;
                 this.duration = 3000;
                 this.cooldownEndTime = 0;
+                this.passiveRegen = 3;
             } else {
                 this.level++;
                 this.updateLevel();
@@ -102,6 +103,9 @@ class Regeneration {
                 this.isActive = false;
             }
         }
+
+        const passiveRegenAmount = this.passiveRegen * deltaTime;
+        this.owner.heal(passiveRegenAmount);
 
         // Обновление частиц
         this.particles = this.particles.filter(particle => {

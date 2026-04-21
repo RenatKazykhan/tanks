@@ -155,7 +155,7 @@
             <div>Игра окончена!</div>
             <div>Ваш счет: <span id="finalScore">0</span></div>
             <div id="restartBtn">
-                <button onclick="resetGame()">Играть снова</button>
+                <button onclick="startGame()">Играть снова</button>
                 <button onclick="backToMenu()" class="menu-btn">В главное меню</button>
             </div>
 
@@ -222,10 +222,6 @@
                 <tr>
                     <td>🛡️ Блокировано броней:</td>
                     <td><span id="blockedByArmor">0</span></td>
-                </tr>
-                <tr>
-                    <td>🔰 Ослаблено щитом:</td>
-                    <td><span id="blockedByShield">0</span></td>
                 </tr>
             </table>
         </div>
@@ -322,6 +318,7 @@
     <script src="js/enemies/iceTank.js"></script>
     <script src="js/enemies/veerTank.js"></script>
     <script src="js/enemies/turret.js"></script>
+    <script src="js/enemies/stage2/tiger1.js"></script>
 
     <script src="js/entyties/wall.js"></script>
     <script src="js/particle.js"></script>
@@ -336,6 +333,9 @@
     <script src="js/managers/checkCollisionsManager.js"></script>
     <script src="js/managers/enemySpawnManager.js"></script>
     <script src="js/managers/mapManager.js"></script>
+    <script src="js/managers/minimap.js"></script>
+    <script src="js/managers/modulesUpgrade.js"></script>
+    <script src="js/managers/visualEffects.js"></script>
 
     <script src="js/managers/fogOfWarManager.js"></script>
     <script src="js/main.js"></script>

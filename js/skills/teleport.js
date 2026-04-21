@@ -29,10 +29,10 @@ class Teleport {
         this.level = Math.min(this.maxLevel, Math.max(1, this.level));
 
         // Характеристики зависят от уровня
-        const distanceMap = [0, 200, 250, 300, 350, 400];
+        const distanceMap = [0, 200, 300, 400, 500, 600];
         this.teleportDistance = distanceMap[this.level] || 200;
 
-        const cooldownMap = [0, 10000, 9000, 8000, 7000, 5000];
+        const cooldownMap = [0, 12000, 10000, 8000, 6000, 4000];
         this.cooldown = cooldownMap[this.level] || 10000;
     }
 

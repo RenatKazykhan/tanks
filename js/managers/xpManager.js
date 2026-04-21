@@ -5,7 +5,7 @@ class XPManager {
         this.level = 1;
         this.xpToNext = 100;  // XP до следующего уровня
         this.baseXP = 100;
-        this.xpGrowth = 1.4; // множитель роста XP
+        this.xpGrowth = 1.2; // множитель роста XP
         this.pendingLevelUp = false;
 
         // Анимация XP-бара
@@ -163,9 +163,9 @@ class XPManager {
         player.damage += 7;
         player.health += 25;
         player.maxHealth += 25;
-        player.bulletSpeed += 20;
-        player.shotCooldown -= 10;
-        player.turretRotationSpeed += 0.1;
+        player.bulletSpeed += 25;
+        player.shotCooldown -= 20;
+        player.turretRotationSpeed += 0.2;
         player.bodyRotationSpeed += 0.1;
         player.visibilityRadius += 10;
         fogOfWar.setVisibilityRadius(player.visibilityRadius);
@@ -175,6 +175,7 @@ class XPManager {
         player.damage += 7;
         player.health += 25;
         player.maxHealth += 25;
+        player.shotCooldown -= 10;
     }
 }
 

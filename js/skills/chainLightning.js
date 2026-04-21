@@ -12,11 +12,11 @@ class ChainLightning {
         this.lightningBullets = [];
 
         // Цепная молния
-        this.damage = 10;
+        this.damage = 5;
         this.cooldown = 10000;
         this.lastTimeUse = 0;
         this.jumps = 4;
-        this.bounceRange = 100;
+        this.bounceRange = 50;
         this.lightningEffects = [];
 
         this.upgradeSkillButton = new UpgradeSkillButton(220, 0);
@@ -35,7 +35,7 @@ class ChainLightning {
         this.level = Math.min(5, Math.max(1, this.level));
 
         // Calculate stats based on level
-        this.damage = this.damage + (this.level * 10);
+        this.damage = this.damage + (this.level * 5);
         this.bounceRange = this.bounceRange + (this.level * 25);
 
         // Jump progression: 2, 3, 3, 4, 5
@@ -148,20 +148,17 @@ class ChainLightning {
             soundManager.playLightning();
         }
 
-        // Create particles around owner
-        if (typeof particles !== 'undefined') {
-            for (let i = 0; i < 8; i++) {
-                const angle = (Math.PI * 2 * i) / 8;
-                const particleX = this.owner.x + Math.cos(angle) * 30;
-                const particleY = this.owner.y + Math.sin(angle) * 30;
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const particleX = this.owner.x + Math.cos(angle) * 30;
+            const particleY = this.owner.y + Math.sin(angle) * 30;
 
-                particles.push(new Particle(particleX, particleY, '#ffff00', {
-                    vx: Math.cos(angle) * 5,
-                    vy: Math.sin(angle) * 5,
-                    life: 500,
-                    size: 3
-                }));
-            }
+            visualEffects.particles.push(new Particle(particleX, particleY, '#ffff00', {
+                vx: Math.cos(angle) * 5,
+                vy: Math.sin(angle) * 5,
+                life: 500,
+                size: 3
+            }));
         }
     }
 
@@ -348,7 +345,7 @@ class ChainLightning {
             const particleX = playerX + Math.cos(angle) * 30;
             const particleY = playerY + Math.sin(angle) * 30;
 
-            particles.push(new Particle(particleX, particleY, '#ffff00', {
+            visualEffects.particles.push(new Particle(particleX, particleY, '#ffff00', {
                 vx: Math.cos(angle) * 5,
                 vy: Math.sin(angle) * 5,
                 life: 500,

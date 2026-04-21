@@ -16,6 +16,8 @@ class Rocket {
         this.lifetime = 5000; // 5 секунд жизни
         this.createdAt = Date.now();
         this.isIceBullet = false; // Флаг для льда
+        this.vx = Math.cos(angle) * this.speed;
+        this.vy = Math.sin(angle) * this.speed;
     }
     
     update(targetX, targetY) {

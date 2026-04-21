@@ -36,7 +36,7 @@ class Blast {
         const damageMap = [0, 100, 150, 200, 250, 300];
         this.damage = damageMap[this.level] || 100;
 
-        const radiusMap = [0, 150, 175, 200, 225, 250];
+        const radiusMap = [0, 150, 200, 250, 300, 400];
         this.radius = radiusMap[this.level] || 150;
 
         const forceMap = [0, 300, 350, 400, 450, 500];
@@ -172,6 +172,33 @@ class Blast {
         }
 
         return segments;
+    }
+
+    handleEnergyBlast(blastData) {
+        // Проверяем попадание по всем врагам
+        enemies.forEach(enemy => {
+            const dx = enemy.x - blastData.x;
+            const dy = enemy.y - blastData.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= blastData.radius) {
+                // Наносим урон
+                enemy.takeDamage(blastData.damage);
+                statManager.damageByExplode += blastData.damage;
+
+                if (!enemy.active) {
+                    enemyDead(enemy.x, enemy.y); // создает взрывы
+                }
+            }
+
+            // Уничтожаем вражеские пули в радиусе взрыва
+            enemy.bullets.forEach(bullet => {
+                const dx = bullet.x - blastData.x;
+                const dy = bullet.y - blastData.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance > blastData.radius;
+            });
+        });
     }
 
     update(deltaTime) {

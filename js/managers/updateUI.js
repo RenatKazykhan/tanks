@@ -4,20 +4,16 @@ class UpdateUIManager {
     }
 
     // Обновление интерфейса ангара
-    updateUpgradeUI() {
+    updateUpgradeUI(modules) {
         const pointsEl = document.getElementById('pointsValue');
         if (pointsEl) {
             pointsEl.textContent = points;
         }
         // Также обновляем бэйджи модулей
-        if (typeof updateAllModuleBadges === 'function') {
-            updateAllModuleBadges();
-        }
+        modules.updateAllModuleBadges();
         // Обновляем панель текущего модуля
-        if (typeof selectedModuleName !== 'undefined' && selectedModuleName) {
-            if (typeof updateModulePanel === 'function') {
-                updateModulePanel(selectedModuleName);
-            }
+        if (modules.selectedModuleName) {
+            modules.updateModulePanel(modules.selectedModuleName);
         }
     }
 
@@ -78,7 +74,7 @@ class UpdateUIManager {
                 desc: 'Заряжаемый взрыв по области вокруг игрока',
                 stats: [
                     ['Урон', prog([100, 150, 200, 250, 300], player.blastSkill.level)],
-                    ['Радиус', prog([150, 175, 200, 225, 250], player.blastSkill.level)],
+                    ['Радиус', prog([150, 200, 250, 300, 400], player.blastSkill.level)],
                     ['Перезарядка', prog([10, 9, 8, 7, 5], player.blastSkill.level, 'с')],
                 ]
             },
@@ -87,8 +83,8 @@ class UpdateUIManager {
                 level: player.teleportSkill.level, maxLevel: 5,
                 desc: 'Мгновенное перемещение к курсору',
                 stats: [
-                    ['Дистанция', prog([200, 250, 300, 350, 400], player.teleportSkill.level)],
-                    ['Перезарядка', prog([10, 9, 8, 7, 5], player.teleportSkill.level, 'с')],
+                    ['Дистанция', prog([200, 300, 400, 500, 600], player.teleportSkill.level)],
+                    ['Перезарядка', prog([12, 10, 8, 6, 4], player.teleportSkill.level, 'с')],
                 ]
             },
             {
@@ -96,8 +92,9 @@ class UpdateUIManager {
                 level: player.regenerationSkill.level, maxLevel: 5,
                 desc: 'Активная быстрая регенерация HP',
                 stats: [
-                    ['Восст.', prog([15, 25, 35, 45, 55], player.regenerationSkill.level, ' hp/с')],
-                    ['Перезарядка', prog([15, 14, 13, 12, 10], player.regenerationSkill.level, 'с')],
+                    ['Пассивно hp/с', prog([3, 6, 9, 12, 15], player.regenerationSkill.level)],
+                    ['Восст. hp/с', prog([15, 25, 35, 45, 55], player.regenerationSkill.level)],
+                    ['Перезарядка', prog([15, 12, 10, 8, 6], player.regenerationSkill.level, 'с')],
                 ]
             },
             {
@@ -105,7 +102,7 @@ class UpdateUIManager {
                 level: player.chainLightningSkill.level, maxLevel: 5,
                 desc: 'Пассивная молния + активный удар по врагу',
                 stats: [
-                    ['Урон', prog([20, 30, 40, 50, 60], player.chainLightningSkill.level)],
+                    ['Урон', prog([10, 15, 20, 25, 30], player.chainLightningSkill.level)],
                     ['Прыжки', prog([2, 3, 3, 4, 5], player.chainLightningSkill.level)],
                     ['Перезарядка', prog([12, 10, 8, 6, 4], player.chainLightningSkill.level, 'с')],
                 ]

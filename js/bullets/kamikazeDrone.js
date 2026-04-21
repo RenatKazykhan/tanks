@@ -99,7 +99,7 @@ class KamikazeDrone {
         this.active = false;
         
         // Создаем взрыв
-        createExplosion(this.x, this.y, this.explosionRadius);
+        //createExplosion(this.x, this.y, this.explosionRadius);
         
         // Наносим урон по области
         if (this.owner === 'player') {

@@ -10,6 +10,9 @@ class Bullet2 {
         this.owner = owner;
         this.active = true;
         
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+
         // Визуальные эффекты
         this.trail = [];
         this.maxTrailLength = 8;

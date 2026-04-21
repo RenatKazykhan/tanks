@@ -49,7 +49,6 @@ class StatManager {
         document.getElementById('healtRestoredRegen').textContent = this.healtRestoredRegen;
         document.getElementById('healtRestoredActiveRegen').textContent = this.healtRestoredActiveRegen.toFixed();
         document.getElementById('blockedByArmor').textContent = this.blockedByArmor.toFixed();
-        document.getElementById('blockedByShield').textContent = this.blockedByShield.toFixed();
     }
 
     reset() {

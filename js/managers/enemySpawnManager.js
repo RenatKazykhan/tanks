@@ -5,7 +5,7 @@ class EnemySpawnManager {
         this.enemySpawnTimer = 0;
         this.enemySpawnInterval = 2000;
         this.tankIndex = 0;
-        this.maxEnemies = 250;
+        this.maxEnemies = 280;
     }
 
     reset() {
@@ -64,53 +64,37 @@ class EnemySpawnManager {
         let enemy = null;
         
         if (this.tankIndex <= 15) {
-            document.getElementById('waveValue').textContent = 1;
             enemy = new Wave1(x, y);
         } else if (this.tankIndex <= 30) {
-            document.getElementById('waveValue').textContent = 2;
             enemy = new IceTank(x, y);
         } else if (this.tankIndex <= 45) {
-            document.getElementById('waveValue').textContent = 2;
             enemy = new SmokeTank(x, y);
         } else if (this.tankIndex <= 60) {
-            document.getElementById('waveValue').textContent = 3;
             enemy = new BerserkTank(x, y);
         } else if (this.tankIndex <= 75) {
-            document.getElementById('waveValue').textContent = 4;
             //enemy = new KamikazeTank(x, y);
             enemy = new VeerTank(x, y);
         } else if (this.tankIndex <= 90) {
-            document.getElementById('waveValue').textContent = 5;
             enemy = new MinerTank(x, y);
         } else if (this.tankIndex <= 105) {
-            document.getElementById('waveValue').textContent = 6;
             enemy = new TeleportTank(x, y);
         } else if (this.tankIndex <= 120) {
-            document.getElementById('waveValue').textContent = 7;
             enemy = new ShieldTank(x, y);
         } else if (this.tankIndex <= 135) {
-            document.getElementById('waveValue').textContent = 8;
             enemy = new SmartTank(x, y);
         } else if (this.tankIndex <= 150) {
-            document.getElementById('waveValue').textContent = 9;
             enemy = new MachineGunTank(x, y);
         } else if (this.tankIndex <= 170) {
-            document.getElementById('waveValue').textContent = 10;
             enemy = new HeavyTank(x, y);
         } else if (this.tankIndex <= 190) {
-            document.getElementById('waveValue').textContent = 11;
             enemy = new RocketTank(x, y);
         } else if (this.tankIndex <= 210) {
-            document.getElementById('waveValue').textContent = 12;
             enemy = new StrongEnemyTank(x, y);
         } else if (this.tankIndex <= 230) {
-            document.getElementById('waveValue').textContent = 13;
             enemy = new Sniper(x, y);
         } else if (this.tankIndex <= 250) {
-            document.getElementById('waveValue').textContent = 14;
             enemy = new StrongEnemyTank(x, y);
         } else if (this.tankIndex <= 280) {
-            document.getElementById('waveValue').textContent = 15;
             enemy = new BossTank(x, y);
         }
 
@@ -118,7 +102,7 @@ class EnemySpawnManager {
         return enemy;
     }
 
-    update(deltaTime, currentStage, enemies, biomeManager, stage2Zones, checkVictoryCallback) {
+    update(deltaTime, currentStage, enemies, biomeManager, stage2Zones) {
         if (currentStage === 2) {
             this.handleStage2Spawning(stage2Zones, enemies);
             return;
@@ -134,14 +118,6 @@ class EnemySpawnManager {
             }
             this.enemySpawnTimer = 0;
             this.enemySpawnInterval = Math.max(1000, this.enemySpawnInterval - 50);
-        }
-
-        if (this.tankIndex >= this.maxEnemies && enemies.length === 0) {
-            setTimeout(() => {
-                if (enemies.length === 0) {
-                    checkVictoryCallback();
-                }
-            }, 3000);
         }
     }
 }

@@ -10,6 +10,8 @@ class Bullet {
         this.owner = owner;
         this.active = true;
         this.isIceBullet = false;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
     }
     
     update(deltaTime) {

@@ -45,9 +45,6 @@ class DoubleShoot {
         // Cooldown: 12, 11, 10, 9, 8 секунд
         const cdMap = [0, 12000, 11000, 10000, 9000, 8000];
         this.cooldown = cdMap[this.level] || 12000;
-
-        // Синхронизируем пассив с PlayerTank
-        this.syncPassive();
     }
 
     upgrade() {
@@ -67,8 +64,6 @@ class DoubleShoot {
                 this.updateLevel();
                 this.lastUseTime = 0;
             }
-
-            this.syncPassive();
 
             if (typeof soundManager !== 'undefined' && typeof soundManager.playLevelUp === 'function') {
                 soundManager.playLevelUp();
