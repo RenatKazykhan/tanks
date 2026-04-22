@@ -44,7 +44,12 @@ function initEventHandlers() {
                 return;
             }
             if (e.key.toLowerCase() === 'c' && player.doubleShootSkill) {
-                player.doubleShootSkill.upgrade();
+                if (player.equippedWeapon == 'gun') {
+                    player.doubleShootSkill.upgrade();
+                }
+                else if (player.equippedWeapon == 'laser') {
+
+                }
                 e.preventDefault();
                 return;
             }
@@ -76,6 +81,23 @@ function initEventHandlers() {
         mouseY = e.clientY - rect.top;
     });
 
+    let isMouseHeld = false;
+    window.isMouseHeld = false; // Сделаем глобальной, чтобы player.js её видел
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button === 0) { // Левая кнопка
+            window.isMouseHeld = true;
+        }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+        if (e.button === 0) {
+            window.isMouseHeld = false;
+        }
+    });
+
+    // Оставляем это для выстрела пушкой по одинарному клику, 
+    // но для лазера будем использовать check isMouseHeld во время update
     canvas.addEventListener('click', (e) => {
         if (gameRunning) {
             const rect = canvas.getBoundingClientRect();
@@ -114,7 +136,9 @@ function initEventHandlers() {
                 return;
             }
 
-            player.shoot();
+            if (player.equippedWeapon === 'gun') {
+                player.shoot();
+            }
         }
     });
 

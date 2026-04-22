@@ -27,6 +27,7 @@
                 <select id="stageSelect" class="stage-dropdown" onchange="selectStage(parseInt(this.value))">
                     <option value="1" data-stage="1">🌍 Лесные территории</option>
                     <option value="2" data-stage="2" disabled>🔒 Промышленная зона</option>
+                    <option value="3" data-stage="3" disabled>🔒 Пустынный лабиринт</option>
                 </select>
                 <div class="stage-record-inline">
                     Рекорд: <span id="stage1-record">0</span>
@@ -42,22 +43,28 @@
             <!-- Кнопки модулей (левая сторона: ходовая часть) -->
             <div class="module-buttons-left">
                 <button class="module-btn" data-module="engine" onclick="selectModuleBtn('engine')">
-                    <span class="module-btn-icon">⚙️</span>
+                    <img class="module-btn-img" src="assets/icon_engine.png" alt="Мотор">
                     <span class="module-btn-name">Мотор</span>
                     <span class="module-btn-level" id="engineLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress"><div class="module-mini-fill" id="engineMiniFill" style="width: 0%"></div></div>
+                    <div class="module-mini-progress">
+                        <div class="module-mini-fill" id="engineMiniFill" style="width: 0%"></div>
+                    </div>
                 </button>
                 <button class="module-btn" data-module="tracks" onclick="selectModuleBtn('tracks')">
-                    <span class="module-btn-icon">🛞</span>
+                    <img class="module-btn-img" src="assets/icon_tracks.png" alt="Гусеницы">
                     <span class="module-btn-name">Гусеницы</span>
                     <span class="module-btn-level" id="tracksLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress"><div class="module-mini-fill" id="tracksMiniFill" style="width: 0%"></div></div>
+                    <div class="module-mini-progress">
+                        <div class="module-mini-fill" id="tracksMiniFill" style="width: 0%"></div>
+                    </div>
                 </button>
                 <button class="module-btn" data-module="hull" onclick="selectModuleBtn('hull')">
-                    <span class="module-btn-icon">🛡️</span>
+                    <img class="module-btn-img" src="assets/icon_hull.png" alt="Корпус">
                     <span class="module-btn-name">Корпус</span>
                     <span class="module-btn-level" id="hullLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress"><div class="module-mini-fill" id="hullMiniFill" style="width: 0%"></div></div>
+                    <div class="module-mini-progress">
+                        <div class="module-mini-fill" id="hullMiniFill" style="width: 0%"></div>
+                    </div>
                 </button>
             </div>
 
@@ -66,22 +73,36 @@
             <!-- Кнопки модулей (правая сторона: вооружение) -->
             <div class="module-buttons-right">
                 <button class="module-btn" data-module="gun" onclick="selectModuleBtn('gun')">
-                    <span class="module-btn-icon">🔫</span>
+                    <img class="module-btn-img" src="assets/icon_gun.png" alt="Орудие">
                     <span class="module-btn-name">Орудие</span>
                     <span class="module-btn-level" id="gunLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress"><div class="module-mini-fill" id="gunMiniFill" style="width: 0%"></div></div>
+                    <div class="module-mini-progress">
+                        <div class="module-mini-fill" id="gunMiniFill" style="width: 0%"></div>
+                    </div>
+                </button>
+                <button class="module-btn" data-module="laser" onclick="selectModuleBtn('laser')">
+                    <img class="module-btn-img" src="assets/icon_laser.png" alt="Лазер">
+                    <span class="module-btn-name">Лазер</span>
+                    <span class="module-btn-level" id="laserLevelBadge">Ур. 0</span>
+                    <div class="module-mini-progress">
+                        <div class="module-mini-fill" id="laserMiniFill" style="width: 0%"></div>
+                    </div>
                 </button>
                 <button class="module-btn" data-module="turret" onclick="selectModuleBtn('turret')">
-                    <span class="module-btn-icon">🗼</span>
+                    <img class="module-btn-img" src="assets/icon_turret.png" alt="Башня">
                     <span class="module-btn-name">Башня</span>
                     <span class="module-btn-level" id="turretLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress"><div class="module-mini-fill" id="turretMiniFill" style="width: 0%"></div></div>
+                    <div class="module-mini-progress">
+                        <div class="module-mini-fill" id="turretMiniFill" style="width: 0%"></div>
+                    </div>
                 </button>
                 <button class="module-btn" data-module="shells" onclick="selectModuleBtn('shells')">
-                    <span class="module-btn-icon">🎯</span>
+                    <img class="module-btn-img" src="assets/icon_shells.png" alt="Снаряды">
                     <span class="module-btn-name">Снаряды</span>
                     <span class="module-btn-level" id="shellsLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress"><div class="module-mini-fill" id="shellsMiniFill" style="width: 0%"></div></div>
+                    <div class="module-mini-progress">
+                        <div class="module-mini-fill" id="shellsMiniFill" style="width: 0%"></div>
+                    </div>
                 </button>
             </div>
         </div>
@@ -104,6 +125,9 @@
                     <span class="upgrade-cost-icon">💰</span>
                     <span id="moduleUpgradeCost">Улучшить (50)</span>
                 </button>
+                <button class="module-equip-btn" id="moduleEquipBtn" onclick="equipModule()" style="display: none;">
+                    🎯 Экипировать
+                </button>
             </div>
         </div>
 
@@ -117,7 +141,8 @@
                     <div class="tank-card-badge">ВЫБРАН</div>
                 </div>
             </div>
-            <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn-new">⟲ Сбросить улучшения</button>
+            <button id="resetStatsBtn" onclick="resetAllStats()" class="reset-stats-btn-new">⟲ Сбросить
+                улучшения</button>
         </div>
 
         <!-- Скрытые поля для обратной совместимости -->
@@ -277,6 +302,7 @@
         </div>
     </div>
 
+    <script src="js/managers/camera.js"></script>
     <script src="js/backgrounds/grass.js"></script>
     <script src="js/backgrounds/biomeManager.js"></script>
     <script src="js/bullets/bullet.js"></script>
@@ -285,6 +311,7 @@
     <script src="js/bullets/iceBullet.js"></script>
     <script src="js/bullets/kamikazeDrone.js"></script>
     <script src="js/bullets/lightningBullet.js"></script>
+    <script src="js/bullets/pantherShell.js"></script>
     <script src="js/entyties/powerUp.js"></script>
 
     <script src="js/skills/upgradeSkillButton.js"></script>
@@ -319,6 +346,8 @@
     <script src="js/enemies/veerTank.js"></script>
     <script src="js/enemies/turret.js"></script>
     <script src="js/enemies/stage2/tiger1.js"></script>
+    <script src="js/enemies/stage3/tiger2.js"></script>
+    <script src="js/enemies/stage3/pantera.js"></script>
 
     <script src="js/entyties/wall.js"></script>
     <script src="js/particle.js"></script>
@@ -338,6 +367,9 @@
     <script src="js/managers/visualEffects.js"></script>
 
     <script src="js/managers/fogOfWarManager.js"></script>
+    <script src="js/stages/stage2.js"></script>
+    <script src="js/stages/stage3.js"></script>
+    <script src="js/ui/moduleIcons.js"></script>
     <script src="js/main.js"></script>
 </body>
 

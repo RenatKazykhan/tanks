@@ -255,12 +255,12 @@ button:hover {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     background: rgba(15, 22, 41, 0.6);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 16px 12px;
+    border-radius: 10px;
+    padding: 8px 8px;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -295,9 +295,47 @@ button:hover {
     background: rgba(74, 158, 255, 0.08);
 }
 
+/* === Экипированное оружие === */
+.module-btn.module-btn-equipped {
+    border-color: rgba(74, 222, 128, 0.7);
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.25), inset 0 0 12px rgba(74, 222, 128, 0.05);
+    background: rgba(74, 222, 128, 0.07);
+}
+
+.module-btn.module-btn-equipped::after {
+    content: '✅';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.module-btn.module-btn-equipped .module-btn-img {
+    filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.8));
+}
+
+/* === Кнопка экипировки === */
+
 .module-btn-icon {
     font-size: 28px;
     line-height: 1;
+}
+
+.module-btn-img {
+    width: 54px;
+    height: 54px;
+    display: block;
+    filter: drop-shadow(0 0 4px rgba(74, 158, 255, 0.0));
+    transition: filter 0.3s ease;
+}
+
+.module-btn:hover .module-btn-img {
+    filter: drop-shadow(0 0 8px rgba(74, 158, 255, 0.6));
+}
+
+.module-btn.module-btn-active .module-btn-img {
+    filter: drop-shadow(0 0 12px rgba(74, 158, 255, 0.9));
 }
 
 .module-btn-name {

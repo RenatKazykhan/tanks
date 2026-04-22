@@ -15,7 +15,7 @@ class EnemySpawnManager {
     }
 
     spawnEnemy(currentStage, biomeManager, stage2Zones, enemies) {
-        if (currentStage === 2) {
+        if (currentStage === 2 || currentStage === 3) {
             return this.handleStage2Spawning(stage2Zones, enemies);
         } else {
             return this.handleStage1Spawning(biomeManager);
@@ -103,7 +103,7 @@ class EnemySpawnManager {
     }
 
     update(deltaTime, currentStage, enemies, biomeManager, stage2Zones) {
-        if (currentStage === 2) {
+        if (currentStage === 2 || currentStage === 3) {
             this.handleStage2Spawning(stage2Zones, enemies);
             return;
         }

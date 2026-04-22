@@ -17,7 +17,6 @@ class ChainLightning {
         this.lastTimeUse = 0;
         this.jumps = 4;
         this.bounceRange = 50;
-        this.lightningEffects = [];
 
         this.upgradeSkillButton = new UpgradeSkillButton(220, 0);
     }
@@ -89,7 +88,7 @@ class ChainLightning {
 
         for (let i = 0; i < this.jumps && currentTarget; i++) {
             // Deal damage
-            currentTarget.takeDamage(this.damage);
+            currentTarget.takeDamageBySkill(this.damage);
             if (!currentTarget.active) {
                 enemyDead(currentTarget.x, currentTarget.y);
             }

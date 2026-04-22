@@ -5,7 +5,7 @@ class XPManager {
         this.level = 1;
         this.xpToNext = 100;  // XP до следующего уровня
         this.baseXP = 100;
-        this.xpGrowth = 1.2; // множитель роста XP
+        this.xpGrowth = 1.1; // множитель роста XP
         this.pendingLevelUp = false;
 
         // Анимация XP-бара
@@ -160,9 +160,10 @@ class XPManager {
     }
 
     levelUp(player) {
+        player.laserDamage += 7;
         player.damage += 7;
-        player.health += 25;
-        player.maxHealth += 25;
+        player.health += 50;
+        player.maxHealth += 50;
         player.bulletSpeed += 25;
         player.shotCooldown -= 20;
         player.turretRotationSpeed += 0.2;
@@ -172,8 +173,9 @@ class XPManager {
     }
 
     takeBonus(palyer) {
+        player.laserDamage += 7;
         player.damage += 7;
-        player.health += 25;
+        player.health += 50;
         player.maxHealth += 25;
         player.shotCooldown -= 10;
     }

@@ -59,10 +59,10 @@ class BiomeManager {
     // Выбрать биом на основе номера волны
       getBiomeForWave(tankIndex) {
         if (currentStage === 2) {
-            return 'grass'; // первый этап всегда в лесу
+            return 'lava'; // Второй этап — вулканические пустоши
         }
-        if (currentStage === 2) {
-            return 'lava'; // Второй этап всегда в городе
+        if (currentStage === 3) {
+            return 'desert'; // Третий этап — пустыня
         }
         
         // Для первого этапа оставляем прежнюю логику

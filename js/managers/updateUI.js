@@ -43,7 +43,12 @@ class UpdateUIManager {
     // Функция для обновления отображения характеристик в паузе
     updateStatsDisplayInGame() {
         document.getElementById('speedIngame').textContent = player.speed.toFixed();
-        document.getElementById('damageIngame').textContent = player.damage.toFixed();
+        if (player.equippedWeapon === 'gun') {
+            document.getElementById('damageIngame').textContent = player.damage.toFixed();
+        }
+        else if (player.equippedWeapon === 'laser') {
+            document.getElementById('damageIngame').textContent = player.laserDamage.toFixed();
+        }
         document.getElementById('fireRateIngame').textContent = Math.floor(player.shotCooldown) + 'ms';
         document.getElementById('bulletSpeedIngame').textContent = player.bulletSpeed.toFixed();
         document.getElementById('regenIngame').textContent = player.regen + ' hp/сек';

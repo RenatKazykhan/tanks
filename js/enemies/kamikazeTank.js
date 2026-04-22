@@ -169,6 +169,14 @@ class KamikazeTank {
         //this.bullets.forEach(bullet => bullet.draw());
     }
 
+    // для способностей
+    takeDamageBySkill(damage) {
+        this.health -= damage;
+        if (this.health <= 0 || isNaN(this.health)) {
+            this.active = false;
+        }
+    }
+
     explode(playerX, playerY) {
         // Визуальный эффект взрыва
         ctx.save();

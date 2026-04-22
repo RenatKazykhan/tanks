@@ -183,7 +183,7 @@ class Blast {
 
             if (distance <= blastData.radius) {
                 // Наносим урон
-                enemy.takeDamage(blastData.damage);
+                enemy.takeDamageBySkill(blastData.damage);
                 statManager.damageByExplode += blastData.damage;
 
                 if (!enemy.active) {

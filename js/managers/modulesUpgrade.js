@@ -45,6 +45,28 @@ class ModulesUpgrade {
                     ];
                 }
             },
+            laser: {
+                name: 'Лазер',
+                icon: '💠',
+                level: 0,
+                maxLevel: 20,
+                baseCost: 70,
+                costMultiplier: 1.6,
+                description: 'Выжигает врагов непрерывным лазером (игнорирует рикошет)',
+                getEffects(level) {
+                    return {
+                        // laser deals X damage per second (tick continuous)
+                        laserDamage: 50 + level * 10 
+                    };
+                },
+                getStatsDisplay(level) {
+                    const e = this.getEffects(level);
+                    const next = level < this.maxLevel ? this.getEffects(level + 1) : null;
+                    return [
+                        { label: '💠 Урон (в секунду)', value: e.laserDamage, next: next ? next.laserDamage : null }
+                    ];
+                }
+            },
             turret: {
                 name: 'Башня',
                 icon: '🗼',
@@ -169,6 +191,7 @@ class ModulesUpgrade {
     // Пересчёт характеристик player из уровней модулей
     recalcTankStats() {
         const gunEff = this.tankModules.gun.getEffects(this.tankModules.gun.level);
+        const laserEff = this.tankModules.laser.getEffects(this.tankModules.laser.level);
         const turretEff = this.tankModules.turret.getEffects(this.tankModules.turret.level);
         const tracksEff = this.tankModules.tracks.getEffects(this.tankModules.tracks.level);
         const engineEff = this.tankModules.engine.getEffects(this.tankModules.engine.level);
@@ -176,6 +199,7 @@ class ModulesUpgrade {
         const hullEff = this.tankModules.hull.getEffects(this.tankModules.hull.level);
 
         player.damage = gunEff.damage;
+        player.laserDamage = laserEff.laserDamage;
 
         // Складываем бонусы перезарядки от орудия и башни
         const gunFireRateBonus = this.BASE_TANK_STATS.fireRate - gunEff.fireRate;
@@ -204,6 +228,11 @@ class ModulesUpgrade {
         // Подсветка активной кнопки
         document.querySelectorAll('.module-btn').forEach(btn => {
             btn.classList.toggle('module-btn-active', btn.dataset.module === moduleName);
+            // Показываем индикатор экипированного оружия
+            const equipped = (btn.dataset.module === 'gun' || btn.dataset.module === 'laser')
+                ? btn.dataset.module === player.equippedWeapon
+                : false;
+            btn.classList.toggle('module-btn-equipped', equipped);
         });
 
         document.getElementById('moduleDetailIcon').textContent = mod.icon;
@@ -238,6 +267,39 @@ class ModulesUpgrade {
             actionsDiv.style.display = 'flex';
             upgradeBtn.disabled = points < cost;
             costSpan.textContent = `Улучшить (${cost})`;
+        }
+
+        const equipBtn = document.getElementById('moduleEquipBtn');
+        if (moduleName === 'gun' || moduleName === 'laser') {
+            equipBtn.style.display = 'block';
+            if (player.equippedWeapon === moduleName) {
+                equipBtn.textContent = '✅ Экипировано';
+                equipBtn.style.background = '#2c3e2c';
+                equipBtn.style.opacity = '1';
+                equipBtn.onclick = null;
+            } else {
+                equipBtn.textContent = '🎯 Экипировать';
+                equipBtn.style.background = '#4a2020';
+                equipBtn.style.opacity = '1';
+                equipBtn.onclick = () => this.equipModule(moduleName);
+            }
+        } else {
+            equipBtn.style.display = 'none';
+        }
+    }
+
+    equipModule(moduleName) {
+        if (moduleName === 'gun' || moduleName === 'laser') {
+            const mod = this.tankModules[moduleName];
+            if (mod.level > 0 || moduleName === 'gun') {
+                player.equippedWeapon = moduleName;
+                localStorage.setItem('tankEquippedWeapon', moduleName);
+                this.updateEquippedIndicators();
+                this.updateModulePanel(moduleName);
+            } else {
+                // Лазер не прокачан — нельзя экипировать
+                alert('Сначала прокачайте лазер (уровень 1+)!');
+            }
         }
     }
 
@@ -298,6 +360,29 @@ class ModulesUpgrade {
             }
             this.recalcTankStats();
         }
+        
+        const equipped = localStorage.getItem('tankEquippedWeapon');
+        if (equipped === 'laser' && this.tankModules.laser.level > 0) {
+            player.equippedWeapon = 'laser';
+        } else {
+            player.equippedWeapon = 'gun';
+        }
+
+        // Обновляем бэйджи и индикаторы экипировки
+        this.updateAllModuleBadges();
+        this.updateEquippedIndicators();
+    }
+
+    // Обновление визуальных индикаторов экипированного оружия
+    updateEquippedIndicators() {
+        document.querySelectorAll('.module-btn').forEach(btn => {
+            if (btn.dataset.module === 'gun' || btn.dataset.module === 'laser') {
+                const isEquipped = btn.dataset.module === player.equippedWeapon;
+                btn.classList.toggle('module-btn-equipped', isEquipped);
+            } else {
+                btn.classList.remove('module-btn-equipped');
+            }
+        });
     }
 
     // Функция сброса всех характеристик

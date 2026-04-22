@@ -1,26 +1,8 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
 const mainMenu = document.getElementById('mainMenu');
 const gameContainer = document.getElementById('gameContainer');
 const gameInfo = document.getElementById('gameInfo');
 gameInfo.style.display = 'none';
 gameContainer.style.display = 'none';
-
-// Размеры окна
-canvas.width = window.innerWidth - 100;
-canvas.height = window.innerHeight - 115;
-
-// Размеры мира
-const WORLD_WIDTH = 3660;
-const WORLD_HEIGHT = 3000;
-
-// Камера
-const camera = {
-    x: 0,
-    y: 0,
-    width: canvas.width,
-    height: canvas.height
-};
 
 canvas.tabIndex = 1;
 canvas.focus();
@@ -47,28 +29,6 @@ const fogOfWar = new FogOfWar(canvas, 300);
 const minimap = new Minimap();
 const modules = new ModulesUpgrade();
 const visualEffects = new VisualEffects();
-
-// Тряска камеры
-const cameraShake = {
-    intensity: 0,
-    decay: 8,
-    offsetX: 0,
-    offsetY: 0,
-    trigger(intensity) {
-        this.intensity = Math.max(this.intensity, intensity);
-    },
-    update(dt) {
-        if (this.intensity > 0.1) {
-            this.offsetX = (Math.random() - 0.5) * this.intensity * 2;
-            this.offsetY = (Math.random() - 0.5) * this.intensity * 2;
-            this.intensity *= Math.max(0, 1 - this.decay * dt);
-        } else {
-            this.intensity = 0;
-            this.offsetX = 0;
-            this.offsetY = 0;
-        }
-    }
-};
 
 // Красная вспышка при получении урона
 let damageFlash = 0;
@@ -127,7 +87,7 @@ function gameLoop() {
     }
 
     // Спавн врагов
-    enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, stage2Zones);
+    enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, currentStage === 3 ? stage3Zones : stage2Zones);
 
     // Обновление бонусов
     powerUps = powerUps.filter(powerUp => {
@@ -149,8 +109,10 @@ function gameLoop() {
             // Проверка столкновений пуль игрока с врагами
             player.bullets.forEach(bullet => {
                 if (bullet.active && checkCollisionManager.checkCollision(bullet, enemy, bullet.radius, enemy.width / 2)) {
-                    enemy.takeDamage(bullet.damage);
+                    enemy.takeDamage(bullet.damage, bullet.x, bullet.y, bullet.vx, bullet.vy);
 
+                    // Проверяем, не рикошет ли (если враг ещё жив и пуля всё ещё активна — значит не рикошетнуло)
+                    // Для Tiger2: если рикошет, здоровье не изменилось, но пулю всё равно деактивируем
                     if (player.lifeSteal > 0) {
                         player.health = Math.min(player.maxHealth, player.health + bullet.damage * player.lifeSteal);
                     }
@@ -180,41 +142,11 @@ function gameLoop() {
     });
 
     if (currentStage === 2) {
-        // Обновляем турели
-        stage2Turrets.forEach(turret => {
-            if (turret.active == true) {
-                if (turret.bullets.length > 0 || fogOfWar.isVisible(turret.x, turret.y, player.x, player.y)) {
-                    turret.update(player.x, player.y, deltaTime);
-                }
-                
+        updateStage2Turrets(deltaTime);
+    }
 
-                turret.bullets = turret.bullets.filter(bullet => {
-                    let hitWall = false;
-                    walls.forEach(wall => {
-                        if (wall.checkCollisionWithCircle(bullet.x, bullet.y, bullet.radius)) {
-                            hitWall = true;
-                        }
-                    });
-                    return bullet.active && !hitWall;
-                });
-
-                // Проверяем столкновения пуль турелей с игроком
-                turret.bullets.forEach(bullet => {
-                    if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
-                        player.takeDamage(bullet.damage, bullet.x, bullet.y, bullet.vx, bullet.vy);
-                        bullet.active = false;
-                    }
-                });
-
-                // Проверяем столкновения пуль игрока с турелями
-                player.bullets.forEach(bullet => {
-                    if (bullet.active && checkCollisionManager.checkCollision(bullet, turret, bullet.radius, turret.radius)) {
-                        turret.takeDamage(bullet.damage);
-                        bullet.active = false;
-                    }
-                });
-            }
-        });
+    if (currentStage === 3) {
+        updateStage3(deltaTime);
     }
 
     // Проверка столкновений игрока со стенами
@@ -319,20 +251,13 @@ function gameLoop() {
     });
 
     if (currentStage === 2) {
-        stage2Turrets.forEach(turret => {
-            if (turret.active && fogOfWar.isVisible(turret.x, turret.y, player.x, player.y)) {
-                turret.draw();
-            }
+        drawStage2Turrets();
+    }
 
-            // Снаряды рисуем всегда, если они в зоне видимости игрока
-            if (turret.active && turret.bullets && turret.bullets.length > 0) {
-                turret.bullets.forEach(bullet => {
-                    if (fogOfWar.isVisible(bullet.x, bullet.y, player.x, player.y)) {
-                        bullet.draw();
-                    }
-                });
-            }
-        });
+    // Этап 3: заколка и выход
+    if (currentStage === 3) {
+        drawStage3Hairpin();
+        drawStage3Exit();
     }
 
     // Рисование молний
@@ -394,34 +319,17 @@ function gameLoop() {
 
     // XP-бар
     xpManager.draw();
+
+    // Индикатор направления к заколке (этап 3)
+    if (currentStage === 3) {
+        drawHairpinIndicator();
+    }
+
     checkVictoryCondition();
     requestAnimationFrame(gameLoop);
 }
 
-function updateCamera() {
-    const targetX = player.x - camera.width / 2;
-    const targetY = player.y - camera.height / 2;
 
-    // Плавное движение камеры (lerp)
-    const lerpSpeed = 15;
-    camera.x += (targetX - camera.x) * lerpSpeed * deltaTime;
-    camera.y += (targetY - camera.y) * lerpSpeed * deltaTime;
-
-    // Устраняем микро-дрожание при малых смещениях
-    if (Math.abs(targetX - camera.x) < 0.5) camera.x = targetX;
-    if (Math.abs(targetY - camera.y) < 0.5) camera.y = targetY;
-
-    // Не даем камере выйти за границы мира
-    camera.x = Math.max(0, Math.min(camera.x, WORLD_WIDTH - camera.width));
-    camera.y = Math.max(0, Math.min(camera.y, WORLD_HEIGHT - camera.height));
-}
-
-function isInCameraView(obj, padding = 50) {
-    return obj.x + obj.width + padding > camera.x &&
-           obj.x - padding < camera.x + camera.width &&
-           obj.y + obj.height + padding > camera.y &&
-           obj.y - padding < camera.y + camera.height;
-}
 
 function enemyDead(x, y) {
     visualEffects.createExplosion(x, y); // создает взрывы
@@ -451,54 +359,29 @@ function checkVictoryCondition() {
         }, 2000); // Ждем 2 секунды для уверенности
     }
     else if (currentStage === 2) {
-        let allAcivated = stage2Zones.every(zone => zone.activated === true);
-        if (enemies.length === 0 && stage2Zones.every(zone => zone.activated === true)) {
-            // Показываем выход
-            visualEffects.createExitEffect();
-            checkStage2Exit();
-        }
+        checkStage2Victory();
+    }
+    else if (currentStage === 3) {
+        checkStage3Victory();
     }
 }
 
-// Функция проверки столкновения прямоугольников
-function checkRectCollision(rect1, rect2) {
-    return rect1.x < rect2.x + rect2.width &&
-        rect1.x + rect1.width > rect2.x &&
-        rect1.y < rect2.y + rect2.height &&
-        rect1.y + rect1.height > rect2.y;
-}
 
-function checkStage2Exit() {
-    if (currentStage !== 2) return;
-
-    const playerRect = {
-        x: player.x - player.width / 2,
-        y: player.y - player.height / 2,
-        width: player.width,
-        height: player.height
-    };
-
-    if (checkRectCollision(playerRect, stage2Exit)) {
-        showVictory();
-    }
-}
 
 // Упрвление этапами
 let currentStage = 1;
 let stageRecords = {
     1: 0,
-    2: 0
+    2: 0,
+    3: 0
 };
 let stageUnlocked = {
     1: true,
-    2: false
+    2: false,
+    3: false
 };
 
-// Добавляем новые переменные для этапа 2
-let stage2Enemies = [];
-let stage2Turrets = [];
-let stage2Exit = { x: 0, y: 0, width: 60, height: 60 };
-let stage2Zones = []; // Зоны появления врагов
+
 
 // Функция выбора этапа (теперь работает с dropdown)
 function selectStage(stageId) {
@@ -511,9 +394,9 @@ function selectStage(stageId) {
     currentStage = stageId;
 
     if (stageId === 2) {
-        stage2Enemies = [];
-        stage2Turrets = [];
-        stage2Zones = [];
+        resetStage2();
+    } else if (stageId === 3) {
+        resetStage3();
     }
 
     // Обновляем рекорд
@@ -541,20 +424,27 @@ function updateStagesUI() {
     if (stageSelect) {
         stageSelect.value = currentStage;
 
+        const stageNames = {
+            1: { icon: '🌍', name: 'Лесные территории' },
+            2: { icon: '🏭', name: 'Промышленная зона' },
+            3: { icon: '🏜️', name: 'Пустынный лабиринт' }
+        };
+
         // Обновляем доступность опций
-        for (let i = 1; i <= 2; i++) {
+        for (let i = 1; i <= 3; i++) {
             const option = stageSelect.querySelector(`option[value="${i}"]`);
             if (option) {
+                const info = stageNames[i];
                 if (stageUnlocked[i]) {
                     option.disabled = false;
                     if (stageRecords[i] > 0) {
-                        option.textContent = `${i === 1 ? '🌍' : '🏭'} ${i === 1 ? 'Лесные территории' : 'Промышленная зона'} ✅`;
+                        option.textContent = `${info.icon} ${info.name} ✅`;
                     } else {
-                        option.textContent = `${i === 1 ? '🌍' : '🏭'} ${i === 1 ? 'Лесные территории' : 'Промышленная зона'}`;
+                        option.textContent = `${info.icon} ${info.name}`;
                     }
                 } else {
                     option.disabled = true;
-                    option.textContent = `🔒 ${i === 1 ? 'Лесные территории' : 'Промышленная зона'}`;
+                    option.textContent = `🔒 ${info.name}`;
                 }
             }
         }
@@ -625,18 +515,26 @@ function resetGame() {
 
     // Сбрасываем состояние этапа 2
     if (currentStage === 2) {
-        stage2Enemies = [];
-        stage2Turrets = [];
-        stage2Zones = [];
+        resetStage2();
+    } else if (currentStage === 3) {
+        resetStage3();
     }
 
     // Используем соответствующую карту
     let mapKey = mapManager.getMapKey(currentStage);
-    stage2Exit = mapManager.createMapFromLayout(mapKey, player, walls, powerUps, stage2Zones, stage2Turrets, stage2Enemies);
+    stage2Exit = mapManager.createMapFromLayout(mapKey, player, walls, powerUps, currentStage === 3 ? stage3Zones : stage2Zones, stage2Turrets, stage2Enemies);
 
-    // Устанавливаем биом для этапа 2
+    // Для этапа 3 сохраняем выход
+    if (currentStage === 3) {
+        stage3Exit = stage2Exit;
+    }
+
+    // Устанавливаем биом для этапов
     if (currentStage === 2) {
         biomeManager.currentBiome = 'lava';
+        biomeManager.init();
+    } else if (currentStage === 3) {
+        biomeManager.currentBiome = 'desert';
         biomeManager.init();
     } else {
         biomeManager.currentBiome = 'grass';
@@ -748,6 +646,10 @@ function showVictory() {
         stageUnlocked[2] = true;
         localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
     }
+    if (currentStage === 2 && stageRecords[2] > 0) {
+        stageUnlocked[3] = true;
+        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
+    }
 
     // Скрываем игровые элементы
     document.getElementById('gameOver').style.display = 'none';
@@ -758,6 +660,9 @@ function showVictory() {
     const victoryScreen = document.getElementById('victory');
     victoryScreen.style.display = 'block';
     document.getElementById('victoryScore').textContent = score;
+
+    // Очищаем старые динамические элементы (если экран открывался раньше)
+    victoryScreen.querySelectorAll('.stage-info, .stage-reward').forEach(el => el.remove());
 
     // Добавляем информацию об этапе
     const stageInfo = document.createElement('div');
@@ -774,7 +679,30 @@ function showVictory() {
     // Обновляем статистику
     statManager.update();
 
+    // === НАЧИСЛЯЕМ ОЧКИ ЗА ПРОХОЖДЕНИЕ ЭТАПА ===
+    const stagePointsReward = {
+        1: 300,
+        2: 600,
+        3: 1000
+    };
+    const reward = stagePointsReward[currentStage] || 300;
+    points += reward;
+    document.getElementById('pointsValue').textContent = points;
     localStorage.setItem('tankGamePoints', points);
+
+    // Показываем сообщение о награде
+    const rewardDiv = document.createElement('div');
+    rewardDiv.className = 'stage-reward';
+    rewardDiv.style.cssText = `
+        color: #ffd700;
+        font-size: 20px;
+        font-weight: bold;
+        margin: 10px 0;
+        text-align: center;
+        text-shadow: 0 0 10px rgba(255,215,0,0.5);
+    `;
+    rewardDiv.textContent = `+${reward} очков за модули 🏆`;
+    victoryScreen.querySelector('.victory-subtitle').after(rewardDiv);
 
     // Обновляем рекорд если нужно
     if (score > recordScore) {
@@ -793,6 +721,10 @@ function resetAllStats() {
 
 function upgradeModule() {
     modules.upgradeModule();
+}
+
+function equipModule() {
+    modules.equipModule(modules.selectedModuleName);
 }
 
 function selectModuleBtn(moduleName) {

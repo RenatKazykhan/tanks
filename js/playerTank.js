@@ -9,7 +9,11 @@ class PlayerTank {
         this.bullets = [];
         this.lastShot = 0;
         this.armorTimer = 0;
-        this.lifeSteal = 0;
+        this.lifeSteal = 0; // В процентах от нанесенного урона
+
+        this.equippedWeapon = 'gun';
+        this.isLaserFiring = false;
+        this.laserDamage = 50;
         this.onGameOver = onGameOver;
 
         // характеристики
@@ -21,7 +25,7 @@ class PlayerTank {
         this.bulletSpeed = 10;
         this.regen = 1;
         this.armor = 1;
-        this.visibilityRadius =  300;
+        this.visibilityRadius = 300;
         this.turretRotationSpeed = 5;
         this.bodyRotationSpeed = 3;
 
@@ -45,11 +49,14 @@ class PlayerTank {
 
         this.isMoveForward = false;
         this.isMoveBack = false;
-        
-           // Рикошет
+
+        // Рикошет
         this.ricochetAngle = 15; // Угол рикошета в градусах
         this.ricochetEffects = []; // Визуальные эффекты рикошета
         this.ricochetIndicator = null; // Индикатор рикошета (текст/иконка)
+
+        // Следы от попаданий
+        this.bulletMarks = [];
     }
 
     update(keys, mouseX, mouseY, deltaTime) {
@@ -76,8 +83,13 @@ class PlayerTank {
             this.bodyAngle += this.bodyRotationSpeed * this.slowEffect * deltaTime;
         }
 
-        if (keys[' ']) {
-            this.shoot(); // внутри shoot() должен быть кулдаун!
+        // Обработка стрельбы
+        this.isLaserFiring = false;
+        if (this.equippedWeapon === 'laser' && (keys[' '] || window.isMouseHeld)) {
+            this.isLaserFiring = true;
+            this.fireLaser(deltaTime);
+        } else if (this.equippedWeapon === 'gun' && keys[' ']) {
+            this.shoot();
         }
 
         // Обновляем эффекты телепортации
@@ -87,12 +99,7 @@ class PlayerTank {
         this.chainLightningSkill.updateVisualEffects(deltaTime);
 
         if (keys['e'] || keys['E']) {
-            if (!this.teleportSkill.teleportKeyPressed) {
-                this.teleportSkill.activate(mouseX, mouseY);
-                this.teleportSkill.teleportKeyPressed = true;
-            }
-        } else {
-            this.teleportSkill.teleportKeyPressed = false;
+            this.teleportSkill.activate(mouseX, mouseY);
         }
 
         // В обработчике нажатия клавиш
@@ -121,42 +128,24 @@ class PlayerTank {
 
         // Активация заморозки щита
         if (keys['g'] || keys['G']) {
-            if (!this.shieldFreezeKeyPressed) {
-                this.shieldSkill.activate(enemies);
-                this.shieldFreezeKeyPressed = true;
-            }
-        } else {
-            this.shieldFreezeKeyPressed = false;
+            this.shieldSkill.activate(enemies);
         }
 
         // Активация вампиризма
         if (keys['v'] || keys['V']) {
-            if (!this.lifestealKeyPressed) {
-                this.lifestealSkill.activate();
-                this.lifestealKeyPressed = true;
-            }
-        } else {
-            this.lifestealKeyPressed = false;
+            this.lifestealSkill.activate();
         }
 
         // Активация залпа двойного выстрела
         if (keys['c'] || keys['C']) {
-            if (!this.doubleShootKeyPressed) {
+            if (this.equippedWeapon == 'gun') {
                 this.doubleShootSkill.activate();
-                this.doubleShootKeyPressed = true;
             }
-        } else {
-            this.doubleShootKeyPressed = false;
         }
 
         // Активация залпа дронов
         if (keys['x'] || keys['X']) {
-            if (!this.droneKeyPressed) {
-                this.droneSkill.activate();
-                this.droneKeyPressed = true;
-            }
-        } else {
-            this.droneKeyPressed = false;
+            this.droneSkill.activate();
         }
 
         // Обработка быстрой регенерации
@@ -189,11 +178,11 @@ class PlayerTank {
         let angleDiff = targetAngle - this.turretAngle;
         // Нормализуем разницу углов от -PI до PI
         angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-        
+
         let currentTurretSpeed = this.turretRotationSpeed;
-        
+
         const turnStep = currentTurretSpeed * this.slowEffect * deltaTime;
-        
+
         if (Math.abs(angleDiff) <= turnStep) {
             this.turretAngle = targetAngle;
         } else {
@@ -217,6 +206,14 @@ class PlayerTank {
         });
 
         this.updateRicochetEffects(deltaTime);
+
+        // Обновляем следы от попаданий
+        if (this.bulletMarks) {
+            this.bulletMarks = this.bulletMarks.filter(m => {
+                m.life -= deltaTime;
+                return m.life > 0;
+            });
+        }
     }
 
     heal(amount) {
@@ -260,10 +257,100 @@ class PlayerTank {
             this.damage,
             shootAngle + (Math.random() - 0.5) * 0.1,
             'enemy',
-            this.bulletSpeed 
+            this.bulletSpeed
         ));
 
         statManager.shootsFired++;
+    }
+
+    fireLaser(deltaTime) {
+        const rayLen = 1000;
+        const step = 15;
+        const dx = Math.cos(this.turretAngle);
+        const dy = Math.sin(this.turretAngle);
+
+        // Начальная точка луча — конец дула
+        const startX = this.x + dx * 20;
+        const startY = this.y + dy * 20;
+
+        this.laserTargetX = startX + dx * rayLen;
+        this.laserTargetY = startY + dy * rayLen;
+
+        let hitEnemy = null;
+
+        for (let dist = 10; dist <= rayLen; dist += step) {
+            const px = startX + dx * dist;
+            const py = startY + dy * dist;
+
+            // Проверка стен
+            let hitWall = false;
+            for (let w of walls) {
+                if (w.checkCollisionWithCircle(px, py, 2)) {
+                    hitWall = true;
+                    this.laserTargetX = px;
+                    this.laserTargetY = py;
+                    break;
+                }
+            }
+            if (hitWall) break;
+
+            // Проверка врагов
+            for (let e of enemies) {
+                // Если враг активен и лазер пересекается с ним
+                if (e.active && checkCollisionManager.checkCollision({ x: px, y: py, radius: 2 }, e, 2, e.width / 2)) {
+                    hitEnemy = e;
+                    this.laserTargetX = px;
+                    this.laserTargetY = py;
+                    break;
+                }
+            }
+            if (hitEnemy) break;
+        }
+
+        if (hitEnemy) {
+            const damageToDeal = this.laserDamage * deltaTime;
+            // Передаем скорость лазера как 1000 чтобы симулировать вектор удара (если нужно)
+            //hitEnemy.takeDamage(damageToDeal, this.laserTargetX, this.laserTargetY, dx * 1000, dy * 1000);
+            hitEnemy.takeDamageBySkill(damageToDeal);
+
+            if (this.lifeSteal > 0) {
+                this.health = Math.min(this.maxHealth, this.health + damageToDeal * this.lifeSteal);
+                if (typeof statManager !== 'undefined') statManager.healthRestoredLifeSteal += damageToDeal * this.lifeSteal;
+            }
+            if (typeof statManager !== 'undefined') statManager.damageByBullet += damageToDeal;
+
+            if (!hitEnemy.active && typeof enemyDead === 'function') {
+                enemyDead(hitEnemy.x, hitEnemy.y);
+            }
+        }
+
+        // Визуальный эффект попадания (искры лазера)
+        if (Math.random() < 0.4 && typeof visualEffects !== 'undefined' && visualEffects.particles) {
+            visualEffects.particles.push({
+                x: this.laserTargetX,
+                y: this.laserTargetY,
+                vx: (Math.random() - 0.5) * 80 - dx * 50, // Искры летят в обратную сторону слегка
+                vy: (Math.random() - 0.5) * 80 - dy * 50,
+                life: 0.15,
+                maxLife: 0.15,
+                color: Math.random() > 0.5 ? '#00ffff' : '#ffffff',
+                size: 1 + Math.random() * 2,
+                update: function () {
+                    this.x += this.vx * 0.016;
+                    this.y += this.vy * 0.016;
+                    this.life -= 0.016;
+                    if (this.life < 0) this.life = 0;
+                },
+                draw: function () {
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = this.life / this.maxLife;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            });
+        }
     }
 
     drawHealthBar() {
@@ -508,197 +595,354 @@ class PlayerTank {
         ctx.arc(this.width / 2 - 14.5, -0.5, 0.8, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.restore();
+        // === СЛЕДЫ ОТ ПРОБИТИЯ (РИСУЮТСЯ НА КОРПУСЕ ДО БАШНИ) ===
+        if (this.bulletMarks) {
+            this.bulletMarks.forEach(m => {
+                const alpha = Math.min(1, m.life / 0.5); // Быстро исчезает в последние 0.5 секунды
+
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+                ctx.globalAlpha = alpha;
+
+                // Раскалённый металл (горячий первые полсекунды)
+                const heat = Math.max(0, (m.life - (m.maxLife - 0.5)) / 0.5);
+
+                // Пробоина (тёмный провал) - Уменьшено
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 1.5 + heat * 0.5, 1, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Имитация свечения раскаленных краев - Уменьшено
+                if (heat > 0) {
+                    ctx.fillStyle = `rgba(255, ${Math.floor(100 + heat * 100)}, 0, ${heat})`;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 1.2, 0.8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Сколы краски по краям и сажа - Уменьшено
+                ctx.fillStyle = 'rgba(10, 10, 10, 0.7)'; // Копоть
+                ctx.beginPath();
+                ctx.arc(-1, 0, 2.5 + heat, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Царапины от скользящего металла - Уменьшены
+                ctx.strokeStyle = '#2c3e2c';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(3, -1.5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-2.5, 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(1.5, 2.5); ctx.stroke();
+
+                ctx.restore();
+            });
+        }
+
+        ctx.restore(); // Сброс трансформации корпуса
+
 
         // ==================== БАШНЯ ТАНКА ====================
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.turretAngle);
 
-        // === СТВОЛ ОРУДИЯ ===
+        if (this.equippedWeapon === 'laser') {
+            // Отрисовка высокотехнологичного лазерного орудия
 
-        // Тень ствола
-        ctx.save();
-        ctx.globalAlpha = 0.2;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(10, -2, 30, 9);
-        ctx.restore();
-
-        // Основа ствола (внешняя труба)
-        const barrelOuterGrad = ctx.createLinearGradient(0, -5, 0, 5);
-        barrelOuterGrad.addColorStop(0, '#3dd977');
-        barrelOuterGrad.addColorStop(0.3, '#27ae60');
-        barrelOuterGrad.addColorStop(0.7, '#1e8449');
-        barrelOuterGrad.addColorStop(1, '#145a32');
-        ctx.fillStyle = barrelOuterGrad;
-        this._roundRect(8, -5, 30, 10, 2);
-        ctx.fill();
-
-        // Внутренний канал ствола (тёмная полоса)
-        ctx.fillStyle = '#0d3d1f';
-        ctx.fillRect(10, -2, 28, 4);
-
-        // Блик на стволе
-        ctx.save();
-        ctx.globalAlpha = 0.25;
-        const barrelHighlight = ctx.createLinearGradient(0, -5, 0, 0);
-        barrelHighlight.addColorStop(0, '#ffffff');
-        barrelHighlight.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = barrelHighlight;
-        ctx.fillRect(8, -5, 30, 5);
-        ctx.restore();
-
-        // Обводка ствола
-        ctx.strokeStyle = '#0d3d1f';
-        ctx.lineWidth = 1.5;
-        this._roundRect(8, -5, 30, 10, 2);
-        ctx.stroke();
-
-        // Кольца усиления на стволе
-        ctx.strokeStyle = '#145a32';
-        ctx.lineWidth = 2;
-        [16, 26].forEach(rx => {
+            // Основание башни
+            ctx.fillStyle = '#1c2833'; // тёмно-сине-серый
             ctx.beginPath();
-            ctx.moveTo(rx, -5);
-            ctx.lineTo(rx, 5);
-            ctx.stroke();
-        });
-
-        // === ДУЛЬНЫЙ ТОРМОЗ ===
-        const muzzleGrad = ctx.createLinearGradient(0, -7, 0, 7);
-        muzzleGrad.addColorStop(0, '#2ecc71');
-        muzzleGrad.addColorStop(0.5, '#1e8449');
-        muzzleGrad.addColorStop(1, '#145a32');
-        ctx.fillStyle = muzzleGrad;
-        this._roundRect(36, -7, 7, 14, 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#0d3d1f';
-        ctx.lineWidth = 1.5;
-        this._roundRect(36, -7, 7, 14, 2);
-        ctx.stroke();
-
-        // Щели дульного тормоза
-        ctx.strokeStyle = '#0d3d1f';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(38, -6);
-        ctx.lineTo(41, -4);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(38, 6);
-        ctx.lineTo(41, 4);
-        ctx.stroke();
-
-        // === ОСНОВАНИЕ БАШНИ (многоугольная форма) ===
-
-        // Тень башни
-        ctx.save();
-        ctx.globalAlpha = 0.15;
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(1, 1, 15, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        // Основная форма башни — скруглённый многоугольник
-        const turretGrad = ctx.createRadialGradient(-3, -3, 0, 0, 0, 16);
-        turretGrad.addColorStop(0, '#4ae08a');
-        turretGrad.addColorStop(0.5, '#2ecc71');
-        turretGrad.addColorStop(1, '#239954');
-        ctx.fillStyle = turretGrad;
-        ctx.beginPath();
-        // Шестиугольная башня
-        const turretRadius = 14;
-        for (let i = 0; i < 6; i++) {
-            const a = (i * Math.PI * 2) / 6 - Math.PI / 6;
-            const r = i % 2 === 0 ? turretRadius : turretRadius - 1;
-            if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-            else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath();
-        ctx.fill();
-
-        // Обводка башни
-        ctx.strokeStyle = '#145a32';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Верхний блик на башне
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        const turretHighlight = ctx.createRadialGradient(-4, -4, 0, 0, 0, 14);
-        turretHighlight.addColorStop(0, '#ffffff');
-        turretHighlight.addColorStop(0.5, 'rgba(255,255,255,0.1)');
-        turretHighlight.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = turretHighlight;
-        ctx.beginPath();
-        ctx.arc(0, 0, 13, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        // Командирский люк (центральный круг)
-        const hatchGrad = ctx.createRadialGradient(-1, -1, 0, 0, 0, 7);
-        hatchGrad.addColorStop(0, '#27ae60');
-        hatchGrad.addColorStop(1, '#1e8449');
-        ctx.fillStyle = hatchGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, 7, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#145a32';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Ручка люка
-        ctx.strokeStyle =  '#5dbd85';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(-3, 0);
-        ctx.lineTo(3, 0);
-        ctx.stroke();
-
-        // Перископ командира
-        ctx.fillStyle = '#145a32';
-        this._roundRect(-2, -12, 4, 5, 1);
-        ctx.fill();
-        ctx.strokeStyle =  '#0d3d1f';
-        ctx.lineWidth = 0.8;
-        this._roundRect(-2, -12, 4, 5, 1);
-        ctx.stroke();
-
-        // Линза перископа
-        ctx.fillStyle = '#a8e6cf';
-        ctx.beginPath();
-        ctx.arc(0, -10, 1.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Дополнительные приборы наблюдения по бокам башни
-        [-8, 8].forEach(sy => {
-            ctx.fillStyle = '#1a7a40';
-            this._roundRect(4, sy - 2, 5, 4, 1);
+            ctx.arc(0, 0, 14, 0, Math.PI * 2);
             ctx.fill();
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Основной ствол (излучатель)
+            const barrelGrad = ctx.createLinearGradient(0, -5, 0, 5);
+            barrelGrad.addColorStop(0, '#111');
+            barrelGrad.addColorStop(0.5, '#444');
+            barrelGrad.addColorStop(1, '#111');
+            ctx.fillStyle = barrelGrad;
+            ctx.fillRect(8, -5, 25, 10);
+
+            // Светящиеся контуры излучателя
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(8, -5, 25, 10);
+
+            // Диоды / Конденсаторы на стволе
+            ctx.fillStyle = this.isLaserFiring ? '#00ffff' : '#005555';
+            ctx.shadowBlur = this.isLaserFiring ? 10 : 0;
+            ctx.shadowColor = '#00ffff';
+            ctx.fillRect(12, -3, 4, 6);
+            ctx.fillRect(18, -3, 4, 6);
+            ctx.fillRect(24, -3, 4, 6);
+
+            // Дульный фокусировщик
+            ctx.fillStyle = '#0f171e';
+            ctx.beginPath();
+            ctx.moveTo(33, -6);
+            ctx.lineTo(40, -4);
+            ctx.lineTo(40, 4);
+            ctx.lineTo(33, 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Ядро башни (светится при стрельбе)
+            ctx.beginPath();
+            ctx.arc(2, 0, 7, 0, Math.PI * 2);
+            ctx.fillStyle = this.isLaserFiring ? '#00ffff' : '#111';
+            ctx.fill();
+            ctx.shadowBlur = 0; // Сброс теней
+
+        } else {
+            // КЛАССИЧЕСКАЯ БАШНЯ
+            // === СТВОЛ ОРУДИЯ ===
+
+            // Тень ствола
+            ctx.save();
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(10, -2, 30, 9);
+            ctx.restore();
+
+            // Основа ствола (внешняя труба)
+            const barrelOuterGrad = ctx.createLinearGradient(0, -5, 0, 5);
+            barrelOuterGrad.addColorStop(0, '#3dd977');
+            barrelOuterGrad.addColorStop(0.3, '#27ae60');
+            barrelOuterGrad.addColorStop(0.7, '#1e8449');
+            barrelOuterGrad.addColorStop(1, '#145a32');
+            ctx.fillStyle = barrelOuterGrad;
+            this._roundRect(8, -5, 30, 10, 2);
+            ctx.fill();
+
+            // Внутренний канал ствола (тёмная полоса)
+            ctx.fillStyle = '#0d3d1f';
+            ctx.fillRect(10, -2, 28, 4);
+
+            // Блик на стволе
+            ctx.save();
+            ctx.globalAlpha = 0.25;
+            const barrelHighlight = ctx.createLinearGradient(0, -5, 0, 0);
+            barrelHighlight.addColorStop(0, '#ffffff');
+            barrelHighlight.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = barrelHighlight;
+            ctx.fillRect(8, -5, 30, 5);
+            ctx.restore();
+
+            // Обводка ствола
+            ctx.strokeStyle = '#0d3d1f';
+            ctx.lineWidth = 1.5;
+            this._roundRect(8, -5, 30, 10, 2);
+            ctx.stroke();
+
+            // Кольца усиления на стволе
+            ctx.strokeStyle = '#145a32';
+            ctx.lineWidth = 2;
+            [16, 26].forEach(rx => {
+                ctx.beginPath();
+                ctx.moveTo(rx, -5);
+                ctx.lineTo(rx, 5);
+                ctx.stroke();
+            });
+
+            // === ДУЛЬНЫЙ ТОРМОЗ ===
+            const muzzleGrad = ctx.createLinearGradient(0, -7, 0, 7);
+            muzzleGrad.addColorStop(0, '#2ecc71');
+            muzzleGrad.addColorStop(0.5, '#1e8449');
+            muzzleGrad.addColorStop(1, '#145a32');
+            ctx.fillStyle = muzzleGrad;
+            this._roundRect(36, -7, 7, 14, 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#0d3d1f';
+            ctx.lineWidth = 1.5;
+            this._roundRect(36, -7, 7, 14, 2);
+            ctx.stroke();
+
+            // Щели дульного тормоза
+            ctx.strokeStyle = '#0d3d1f';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(38, -6);
+            ctx.lineTo(41, -4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(38, 6);
+            ctx.lineTo(41, 4);
+            ctx.stroke();
+
+            // Анимация выстрела (откат ствола и огонь)
+            if (this.muzzleFlashTimer > 0) {
+                ctx.save();
+                ctx.translate(45, 0); // Смещение к концу дула
+
+                // Вспышка (основное пламя)
+                const flashGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
+                flashGrad.addColorStop(0, '#ffffff');
+                flashGrad.addColorStop(0.2, '#fff176');
+                flashGrad.addColorStop(0.6, '#ff8a65');
+                flashGrad.addColorStop(1, 'rgba(216, 67, 21, 0)');
+
+                ctx.fillStyle = flashGrad;
+                ctx.beginPath();
+                ctx.moveTo(0, -4);
+                ctx.bezierCurveTo(15, -15, 25, -5, 30, 0); // Правая верхняя часть пламени
+                ctx.bezierCurveTo(25, 5, 15, 15, 0, 4); // Правая нижняя
+                ctx.fill();
+
+                // Дымки вокруг выстрела
+                ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
+                ctx.beginPath(); ctx.arc(5, -8, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(8, 6, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(15, 0, 8, 0, Math.PI * 2); ctx.fill();
+
+                ctx.restore();
+            }
+
+            // === ОСНОВАНИЕ БАШНИ (многоугольная форма) ===
+
+            // Тень башни
+            ctx.save();
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(1, 1, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Основная форма башни — скруглённый многоугольник
+            const turretGrad = ctx.createRadialGradient(-3, -3, 0, 0, 0, 16);
+            turretGrad.addColorStop(0, '#4ae08a');
+            turretGrad.addColorStop(0.5, '#2ecc71');
+            turretGrad.addColorStop(1, '#239954');
+            ctx.fillStyle = turretGrad;
+            ctx.beginPath();
+            // Шестиугольная башня
+            const turretRadius = 14;
+            for (let i = 0; i < 6; i++) {
+                const a = (i * Math.PI * 2) / 6 - Math.PI / 6;
+                const r = i % 2 === 0 ? turretRadius : turretRadius - 1;
+                if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+                else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Обводка башни
+            ctx.strokeStyle = '#145a32';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Верхний блик на башне
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            const turretHighlight = ctx.createRadialGradient(-4, -4, 0, 0, 0, 14);
+            turretHighlight.addColorStop(0, '#ffffff');
+            turretHighlight.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+            turretHighlight.addColorStop(1, 'rgba(255,255,255,0)');
+
+            ctx.fillStyle = turretHighlight;
+            ctx.beginPath();
+            ctx.arc(0, 0, 13, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Командирский люк (центральный круг)
+            const hatchGrad = ctx.createRadialGradient(-1, -1, 0, 0, 0, 7);
+            hatchGrad.addColorStop(0, '#27ae60');
+            hatchGrad.addColorStop(1, '#1e8449');
+            ctx.fillStyle = hatchGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#145a32';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Ручка люка
+            ctx.strokeStyle = '#5dbd85';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-3, 0);
+            ctx.lineTo(3, 0);
+            ctx.stroke();
+
+            // Перископ командира
+            ctx.fillStyle = '#145a32';
+            this._roundRect(-2, -12, 4, 5, 1);
+            ctx.fill();
+            ctx.strokeStyle = '#0d3d1f';
+            ctx.lineWidth = 0.8;
+            this._roundRect(-2, -12, 4, 5, 1);
+            ctx.stroke();
+
+            // Линза перископа
             ctx.fillStyle = '#a8e6cf';
             ctx.beginPath();
-            ctx.arc(6.5, sy, 1, 0, Math.PI * 2);
+            ctx.arc(0, -10, 1.2, 0, Math.PI * 2);
             ctx.fill();
-        });
 
-        // Антенна на башне
-        ctx.strokeStyle = '#5dbd85';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(-8, -5);
-        ctx.lineTo(-14, -18);
-        ctx.stroke();
+            // Дополнительные приборы наблюдения по бокам башни
+            [-8, 8].forEach(sy => {
+                ctx.fillStyle = '#1a7a40';
+                this._roundRect(4, sy - 2, 5, 4, 1);
+                ctx.fill();
+                ctx.fillStyle = '#a8e6cf';
+                ctx.beginPath();
+                ctx.arc(6.5, sy, 1, 0, Math.PI * 2);
+                ctx.fill();
+            });
 
-        // Шарик на конце антенны
-        ctx.fillStyle = '#ff6b6b';
-        ctx.beginPath();
-        ctx.arc(-14, -18, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+            // Антенна на башне
+            ctx.strokeStyle = '#5dbd85';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-8, -5);
+            ctx.lineTo(-14, -18);
+            ctx.stroke();
+
+            // Шарик на конце антенны
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(-14, -18, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         ctx.restore();
+
+        // Отрисовка Лазерного Луча поверх всего танка
+        if (this.equippedWeapon === 'laser' && this.isLaserFiring) {
+            ctx.save();
+            // Луч рисуется в глобальных координатах!
+            const dx = Math.cos(this.turretAngle);
+            const dy = Math.sin(this.turretAngle);
+            const startX = this.x + dx * 40; // от конца излучателя
+            const startY = this.y + dy * 40;
+
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(this.laserTargetX, this.laserTargetY);
+
+            // Внутреннее белое ядро луча
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ffffff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00ffff';
+            ctx.stroke();
+
+            // Внешнее неоновое свечение (за счет тени)
+            ctx.lineWidth = 6;
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+            ctx.stroke();
+
+            ctx.restore();
+        }
 
         // ==================== ЩИТ ====================
         if (this.shieldSkill.hasShield && this.shieldSkill.shieldAmount > 0 && !this.shieldSkill.shieldBroken) {
@@ -730,7 +974,7 @@ class PlayerTank {
             ctx.restore();
 
             // Внутреннее тонкое кольцо
-            ctx.strokeStyle = 'rgba(52, 152, 219, 0.3)' ;
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.3)';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.arc(0, 0, shieldRadius - 5, 0, Math.PI * 2);
@@ -854,7 +1098,12 @@ class PlayerTank {
         this.blastSkill.draw();
         this.shieldSkill.draw(enemies);
         this.lifestealSkill.draw();
-        this.doubleShootSkill.draw();
+        if (this.equippedWeapon == 'gun') {
+
+        }
+        else if (this.equippedWeapon == 'gun') {
+            this.doubleShootSkill.draw();
+        }
         this.drawRicochetEffects();
 
         // ==================== UI ТЕКСТ ====================
@@ -948,7 +1197,7 @@ class PlayerTank {
 
     takeDamage(damage, bulletX, bulletY, bulletVX, bulletVY) {
         // ==================== ПРОВЕРКА РИКОШЕТА ====================
-        
+
         // Вычисляем направление полёта снаряда
         let bulletFlightAngle;
         if (bulletVX !== undefined && bulletVY !== undefined) {
@@ -956,14 +1205,14 @@ class PlayerTank {
         } else {
             bulletFlightAngle = Math.atan2(bulletY - this.y, bulletX - this.x);
         }
-        
+
         // Вычисляем нормаль поверхности танка в точке попадания
         const hitAngle = Math.atan2(bulletY - this.y, bulletX - this.x);
-        
+
         // Определяем к какой грани корпуса ближе всего точка попадания
         const relativeHitAngle = hitAngle - this.bodyAngle;
         const normalizedHitAngle = Math.atan2(Math.sin(relativeHitAngle), Math.cos(relativeHitAngle));
-        
+
         // Определяем нормаль ближайшей грани
         let surfaceNormal;
         if (Math.abs(normalizedHitAngle) <= Math.PI / 4) {
@@ -979,24 +1228,24 @@ class PlayerTank {
             // Левая грань
             surfaceNormal = this.bodyAngle - Math.PI / 2;
         }
-        
+
         // Вычисляем угол между направлением снаряда и нормалью поверхности
         // Снаряд летит К танку, поэтому берём обратное направление полёта
         const incomingAngle = bulletFlightAngle + Math.PI;
         let impactAngle = incomingAngle - surfaceNormal;
         impactAngle = Math.atan2(Math.sin(impactAngle), Math.cos(impactAngle));
-        
+
         // Угол от касательной (0° = скользящий удар, 90° = прямое попадание)
         const angleFromSurface = 90 - Math.abs(impactAngle * 180 / Math.PI);
-        
+
         // Если угол от поверхности меньше порога — рикошет!
         if (angleFromSurface < this.ricochetAngle) {
             this.triggerRicochet(bulletX, bulletY, surfaceNormal, angleFromSurface);
             return; // Урон не проходит
         }
-        
+
         // ==================== СУЩЕСТВУЮЩАЯ ЛОГИКА УРОНА ====================
-        
+
         // Рассчитываем угол попадания снаряда
         const bulletAngle = Math.atan2(bulletY - this.y, bulletX - this.x);
 
@@ -1039,6 +1288,44 @@ class PlayerTank {
         this.health -= damage;
         statManager.takeDamages += damage;
 
+        // --- ДОБАВЛЕНИЕ СЛЕДА ПРОБИТИЯ ---
+        if (!this.bulletMarks) this.bulletMarks = [];
+
+        let dx = bulletX - this.x;
+        let dy = bulletY - this.y;
+
+        // Перевод координат попадания в локальную систему координат корпуса
+        let localX = dx * Math.cos(-this.bodyAngle) - dy * Math.sin(-this.bodyAngle);
+        let localY = dx * Math.sin(-this.bodyAngle) + dy * Math.cos(-this.bodyAngle);
+
+        this.bulletMarks.push({
+            x: localX,
+            y: localY,
+            angle: bulletFlightAngle - this.bodyAngle,
+            life: 1.5,
+            maxLife: 1.5
+        });
+
+        // Добавляем искры при попадании (как при ударе металла о металл)
+        const sparkCount = 3 + Math.floor(Math.random() * 4);
+        const hitNormal = bulletFlightAngle + Math.PI; // Отскок назад и в стороны
+        for (let i = 0; i < sparkCount; i++) {
+            const sparkAngle = hitNormal + (Math.random() - 0.5) * Math.PI * 0.8;
+            const sparkSpeed = 40 + Math.random() * 80;
+            this.ricochetEffects.push({
+                x: bulletX,
+                y: bulletY,
+                vx: Math.cos(sparkAngle) * sparkSpeed,
+                vy: Math.sin(sparkAngle) * sparkSpeed,
+                life: 0.15 + Math.random() * 0.2,
+                maxLife: 0.15 + Math.random() * 0.2,
+                size: 1 + Math.random() * 1.5,
+                type: 'spark',
+                color: '#ffaa00'
+            });
+        }
+        // ---------------------------------
+
         soundManager.playHit();
         cameraShake.trigger(4 + damage * 0.1);
         damageFlash = 1;
@@ -1054,114 +1341,114 @@ class PlayerTank {
     }
 
     triggerRicochet(bulletX, bulletY, surfaceNormal, angle) {
-    // Звуковой эффект рикошета (если есть)
-    if (typeof soundManager !== 'undefined' && soundManager.playRicochet) {
-        soundManager.playRicochet();
-    }
-    
-    // Статистика рикошетов
-    if (typeof statManager !== 'undefined') {
-        if (!statManager.ricochets) statManager.ricochets = 0;
-        statManager.ricochets++;
-    }
-    
-    // Создаём визуальный эффект рикошета
-    const sparkCount = 6 + Math.floor(Math.random() * 5);
-    for (let i = 0; i < sparkCount; i++) {
-        const sparkAngle = surfaceNormal + (Math.random() - 0.5) * Math.PI * 0.6;
-        const sparkSpeed = 80 + Math.random() * 150;
+        // Звуковой эффект рикошета (если есть)
+        if (typeof soundManager !== 'undefined' && soundManager.playRicochet) {
+            soundManager.playRicochet();
+        }
+
+        // Статистика рикошетов
+        if (typeof statManager !== 'undefined') {
+            if (!statManager.ricochets) statManager.ricochets = 0;
+            statManager.ricochets++;
+        }
+
+        // Создаём визуальный эффект рикошета
+        const sparkCount = 6 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < sparkCount; i++) {
+            const sparkAngle = surfaceNormal + (Math.random() - 0.5) * Math.PI * 0.6;
+            const sparkSpeed = 80 + Math.random() * 150;
+            this.ricochetEffects.push({
+                x: bulletX,
+                y: bulletY,
+                vx: Math.cos(sparkAngle) * sparkSpeed,
+                vy: Math.sin(sparkAngle) * sparkSpeed,
+                life: 0.3 + Math.random() * 0.3,
+                maxLife: 0.3 + Math.random() * 0.3,
+                size: 1.5 + Math.random() * 2.5,
+                type: 'spark',
+                color: Math.random() > 0.5 ? '#ffdd44' : '#ffaa00'
+            });
+        }
+
+        // Вспышка в точке рикошета
         this.ricochetEffects.push({
             x: bulletX,
             y: bulletY,
-            vx: Math.cos(sparkAngle) * sparkSpeed,
-            vy: Math.sin(sparkAngle) * sparkSpeed,
-            life: 0.3 + Math.random() * 0.3,
-            maxLife: 0.3 + Math.random() * 0.3,
-            size: 1.5 + Math.random() * 2.5,
-            type: 'spark',
-            color: Math.random() > 0.5 ? '#ffdd44' : '#ffaa00'
+            vx: 0,
+            vy: 0,
+            life: 0.4,
+            maxLife: 0.4,
+            size: 20,
+            type: 'flash'
+        });
+
+        // Индикатор текста "РИКОШЕТ"
+        this.ricochetEffects.push({
+            x: bulletX,
+            y: bulletY - 15,
+            vx: 0,
+            vy: -40,
+            life: 1.2,
+            maxLife: 1.2,
+            size: 14,
+            type: 'text',
+            text: `РИКОШЕТ! (${angle.toFixed(1)}°)`
+        });
+
+        // Кольцо ударной волны
+        this.ricochetEffects.push({
+            x: bulletX,
+            y: bulletY,
+            vx: 0,
+            vy: 0,
+            life: 0.5,
+            maxLife: 0.5,
+            size: 5,
+            type: 'ring'
+        });
+
+        // Линия отскока (показывает направление рикошета)
+        const reflectAngle = surfaceNormal + (surfaceNormal - (Math.atan2(bulletY - this.y, bulletX - this.x) + Math.PI));
+        this.ricochetEffects.push({
+            x: bulletX,
+            y: bulletY,
+            vx: Math.cos(reflectAngle) * 120,
+            vy: Math.sin(reflectAngle) * 120,
+            life: 0.3,
+            maxLife: 0.3,
+            size: 3,
+            type: 'trail',
+            startX: bulletX,
+            startY: bulletY
         });
     }
-    
-    // Вспышка в точке рикошета
-    this.ricochetEffects.push({
-        x: bulletX,
-        y: bulletY,
-        vx: 0,
-        vy: 0,
-        life: 0.4,
-        maxLife: 0.4,
-        size: 20,
-        type: 'flash'
-    });
-    
-    // Индикатор текста "РИКОШЕТ"
-    this.ricochetEffects.push({
-        x: bulletX,
-        y: bulletY - 15,
-        vx: 0,
-        vy: -40,
-        life: 1.2,
-        maxLife: 1.2,
-        size: 14,
-        type: 'text',
-        text: `РИКОШЕТ! (${angle.toFixed(1)}°)`
-    });
-    
-    // Кольцо ударной волны
-    this.ricochetEffects.push({
-        x: bulletX,
-        y: bulletY,
-        vx: 0,
-        vy: 0,
-        life: 0.5,
-        maxLife: 0.5,
-        size: 5,
-        type: 'ring'
-    });
-    
-    // Линия отскока (показывает направление рикошета)
-    const reflectAngle = surfaceNormal + (surfaceNormal - (Math.atan2(bulletY - this.y, bulletX - this.x) + Math.PI));
-    this.ricochetEffects.push({
-        x: bulletX,
-        y: bulletY,
-        vx: Math.cos(reflectAngle) * 120,
-        vy: Math.sin(reflectAngle) * 120,
-        life: 0.3,
-        maxLife: 0.3,
-        size: 3,
-        type: 'trail',
-        startX: bulletX,
-        startY: bulletY
-    });
-}
 
-updateRicochetEffects(deltaTime) {
-    this.ricochetEffects = this.ricochetEffects.filter(effect => {
-        effect.life -= deltaTime;
-        effect.x += effect.vx * deltaTime;
-        effect.y += effect.vy * deltaTime;
-        
-        // Гравитация для искр
-        if (effect.type === 'spark') {
-            effect.vy += 200 * deltaTime;
-        }
-        
-        return effect.life > 0;
-    });
-}
+    updateRicochetEffects(deltaTime) {
+        this.ricochetEffects = this.ricochetEffects.filter(effect => {
+            effect.life -= deltaTime;
+            effect.x += effect.vx * deltaTime;
+            effect.y += effect.vy * deltaTime;
+
+            // Гравитация для искр
+            if (effect.type === 'spark') {
+                effect.vy += 200 * deltaTime;
+            }
+
+            return effect.life > 0;
+        });
+    }
 
     drawRicochetEffects() {
         this.ricochetEffects.forEach(effect => {
             const alpha = Math.max(0, effect.life / effect.maxLife);
-            
+
             ctx.save();
-            
+
             switch (effect.type) {
                 case 'spark': {
                     // Яркие искры
                     ctx.globalAlpha = alpha;
-                    
+
                     // Свечение вокруг искры
                     const glowGrad = ctx.createRadialGradient(
                         effect.x, effect.y, 0,
@@ -1173,13 +1460,13 @@ updateRicochetEffects(deltaTime) {
                     ctx.beginPath();
                     ctx.arc(effect.x, effect.y, effect.size * 3, 0, Math.PI * 2);
                     ctx.fill();
-                    
+
                     // Ядро искры
                     ctx.fillStyle = '#ffffff';
                     ctx.beginPath();
                     ctx.arc(effect.x, effect.y, effect.size * 0.5, 0, Math.PI * 2);
                     ctx.fill();
-                    
+
                     // Хвост искры
                     ctx.strokeStyle = effect.color;
                     ctx.lineWidth = effect.size * 0.4;
@@ -1193,12 +1480,12 @@ updateRicochetEffects(deltaTime) {
                     ctx.stroke();
                     break;
                 }
-                
+
                 case 'flash': {
                     // Яркая вспышка в точке удара
                     const flashSize = effect.size * (1 - alpha * 0.3);
                     ctx.globalAlpha = alpha * 0.8;
-                    
+
                     const flashGrad = ctx.createRadialGradient(
                         effect.x, effect.y, 0,
                         effect.x, effect.y, flashSize
@@ -1211,7 +1498,7 @@ updateRicochetEffects(deltaTime) {
                     ctx.beginPath();
                     ctx.arc(effect.x, effect.y, flashSize, 0, Math.PI * 2);
                     ctx.fill();
-                    
+
                     // Крестообразные лучи
                     ctx.strokeStyle = `rgba(255, 255, 200, ${alpha * 0.6})`;
                     ctx.lineWidth = 2;
@@ -1228,17 +1515,17 @@ updateRicochetEffects(deltaTime) {
                     }
                     break;
                 }
-                
+
                 case 'text': {
                     // Текстовый индикатор
                     ctx.globalAlpha = alpha;
                     ctx.font = `bold ${effect.size}px Arial`;
                     ctx.textAlign = 'center';
-                    
+
                     // Тень текста
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                     ctx.fillText(effect.text, effect.x + 1, effect.y + 1);
-                    
+
                     // Основной текст с градиентом
                     const textGrad = ctx.createLinearGradient(
                         effect.x - 40, effect.y - 10,
@@ -1249,14 +1536,14 @@ updateRicochetEffects(deltaTime) {
                     textGrad.addColorStop(1, '#ffdd00');
                     ctx.fillStyle = textGrad;
                     ctx.fillText(effect.text, effect.x, effect.y);
-                    
+
                     // Обводка текста
                     ctx.strokeStyle = '#cc8800';
                     ctx.lineWidth = 0.5;
                     ctx.strokeText(effect.text, effect.x, effect.y);
                     break;
                 }
-                
+
                 case 'ring': {
                     // Расширяющееся кольцо
                     const ringRadius = effect.size + (1 - alpha) * 35;
@@ -1266,7 +1553,7 @@ updateRicochetEffects(deltaTime) {
                     ctx.beginPath();
                     ctx.arc(effect.x, effect.y, ringRadius, 0, Math.PI * 2);
                     ctx.stroke();
-                    
+
                     // Второе внутреннее кольцо
                     ctx.globalAlpha = alpha * 0.3;
                     ctx.strokeStyle = '#ffffff';
@@ -1276,11 +1563,11 @@ updateRicochetEffects(deltaTime) {
                     ctx.stroke();
                     break;
                 }
-                
+
                 case 'trail': {
                     // Линия отскока (показывает траекторию рикошета)
                     ctx.globalAlpha = alpha * 0.7;
-                    
+
                     // Пунктирная линия направления отскока
                     ctx.strokeStyle = '#ffaa00';
                     ctx.lineWidth = 2 * alpha;
@@ -1290,7 +1577,7 @@ updateRicochetEffects(deltaTime) {
                     ctx.lineTo(effect.x, effect.y);
                     ctx.stroke();
                     ctx.setLineDash([]);
-                    
+
                     // Стрелка на конце
                     const trailAngle = Math.atan2(
                         effect.y - effect.startY,
@@ -1313,7 +1600,7 @@ updateRicochetEffects(deltaTime) {
                     break;
                 }
             }
-            
+
             ctx.restore();
         });
     }

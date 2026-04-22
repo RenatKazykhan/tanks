@@ -1,4 +1,4 @@
-class Bullet {
+class PantherShell {
     constructor(x, y, damage, angle, owner, speed = 1000) {
         this.x = x;
         this.y = y;
@@ -13,12 +13,12 @@ class Bullet {
         this.vy = Math.sin(angle) * speed;
         this.trail = [];
     }
-
+    
     update(deltaTime) {
         // Оставляем трассерный дымный след
-        this.trail.unshift({ x: this.x, y: this.y, life: 0.15, maxLife: 0.15 });
+        this.trail.unshift({x: this.x, y: this.y, life: 0.15, maxLife: 0.15});
         if (this.trail.length > 8) this.trail.pop();
-
+        
         for (let i = this.trail.length - 1; i >= 0; i--) {
             this.trail[i].life -= deltaTime;
             if (this.trail[i].life <= 0) this.trail.splice(i, 1);
@@ -26,12 +26,12 @@ class Bullet {
 
         this.x += this.vx * deltaTime;
         this.y += this.vy * deltaTime;
-
+        
         if (this.x < 0 || this.x > WORLD_WIDTH || this.y < 0 || this.y > WORLD_HEIGHT) {
             this.active = false;
         }
     }
-
+    
     draw() {
         // Отрисовка трассерного следа
         if (this.trail.length > 1) {
@@ -51,7 +51,7 @@ class Bullet {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
-
+        
         // Красный трассирующий огонек сзади снаряда
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#ff2200';
@@ -60,13 +60,13 @@ class Bullet {
         ctx.shadowBlur = 0; // отключаем тень
 
         // Тело снаряда (тёмно-серая сталь)
-        ctx.fillStyle = '#333333';
+        ctx.fillStyle = '#333333'; 
         ctx.fillRect(-4, -2.5, 7, 5);
-
+        
         // Медный ведущий поясок
         ctx.fillStyle = '#b87333';
         ctx.fillRect(-1, -3, 2, 6);
-
+        
         // Баллистический наконечник (светло-серая сталь)
         ctx.fillStyle = '#999999';
         ctx.beginPath();
@@ -75,7 +75,7 @@ class Bullet {
         ctx.lineTo(3, 2.5);
         ctx.closePath();
         ctx.fill();
-
+        
         ctx.restore();
     }
 }

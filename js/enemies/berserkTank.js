@@ -21,7 +21,15 @@ class BerserkTank {
         this.berserkThreshold = 0.3; // 30% здоровья
         this.pulseAnimation = 0;
     }
-    
+
+    // для способностей
+    takeDamageBySkill(damage) {
+        this.health -= damage;
+        if (this.health <= 0 || isNaN(this.health)) {
+            this.active = false;
+        }
+    }
+
     update(playerX, playerY, deltaTime, playerBullets = [], walls = []) {
         // Проверка на активацию берсерк режима
         if (this.health / this.maxHealth <= this.berserkThreshold && !this.berserkMode) {
@@ -30,23 +38,23 @@ class BerserkTank {
             this.shotCooldown = 800; // Быстрее стреляет
             this.damage *= 1.5; // Больше урона
         }
-        
+
         // Анимация пульсации в берсерк режиме
         if (this.berserkMode) {
             this.pulseAnimation += deltaTime * 10;
         }
-        
+
         // AI движение
         const dx = playerX - this.x;
         const dy = playerY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // В берсерк режиме танк более агрессивен
         const attackDistance = this.berserkMode ? 100 : 150;
-        
+
         if (distance > attackDistance) {
             this.angle = Math.atan2(dy, dx);
-            
+
             // Зигзагообразное движение в берсерк режиме
             if (this.berserkMode) {
                 const zigzag = Math.sin(Date.now() * 0.005) * 0.5;
@@ -57,11 +65,11 @@ class BerserkTank {
                 this.y += Math.sin(this.angle) * this.speed * deltaTime;
             }
         }
-        
+
         // Стрельба
         const now = Date.now();
         const shootDistance = this.berserkMode ? 400 : 300;
-        
+
         if (now - this.lastShot > this.shotCooldown && distance < shootDistance) {
             // В берсерк режиме стреляет тройными выстрелами
             if (this.berserkMode) {
@@ -86,43 +94,43 @@ class BerserkTank {
             }
             this.lastShot = now;
         }
-        
+
         // Обновление пуль
         this.bullets = this.bullets.filter(bullet => {
             bullet.update(deltaTime);
             return bullet.active;
         });
     }
-    
+
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
-        
+
         // Эффект берсерк режима
         if (this.berserkMode) {
             // Красная аура
             const pulseSize = Math.sin(this.pulseAnimation) * 5 + 5;
             ctx.shadowColor = '#ff0000';
             ctx.shadowBlur = 20 + pulseSize;
-            
+
             // Огненные частицы
             ctx.fillStyle = 'rgba(255, 100, 0, 0.3)';
             ctx.beginPath();
-            ctx.arc(0, 0, this.width/2 + pulseSize, 0, Math.PI * 2);
+            ctx.arc(0, 0, this.width / 2 + pulseSize, 0, Math.PI * 2);
             ctx.fill();
         }
-        
+
         // Корпус танка (шестиугольная форма)
         ctx.fillStyle = this.berserkMode ? '#ff4444' : '#e74c3c';
         ctx.strokeStyle = this.berserkMode ? '#ff0000' : '#c0392b';
         ctx.lineWidth = 3;
-        
+
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
             const angle = (Math.PI / 3) * i;
-            const x = Math.cos(angle) * (this.width/2);
-            const y = Math.sin(angle) * (this.height/2);
+            const x = Math.cos(angle) * (this.width / 2);
+            const y = Math.sin(angle) * (this.height / 2);
             if (i === 0) {
                 ctx.moveTo(x, y);
             } else {
@@ -132,7 +140,7 @@ class BerserkTank {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        
+
         // Башня (треугольная)
         ctx.fillStyle = this.berserkMode ? '#cc0000' : '#c0392b';
         ctx.beginPath();
@@ -141,7 +149,7 @@ class BerserkTank {
         ctx.lineTo(-5, 8);
         ctx.closePath();
         ctx.fill();
-        
+
         // Дуло (двойное в берсерк режиме)
         ctx.fillStyle = this.berserkMode ? '#990000' : '#a93226';
         if (this.berserkMode) {
@@ -150,49 +158,49 @@ class BerserkTank {
         } else {
             ctx.fillRect(15, -2, 25, 4);
         }
-        
+
         // Декоративные элементы
         ctx.fillStyle = '#222';
         ctx.beginPath();
         ctx.arc(-10, -10, 3, 0, Math.PI * 2);
         ctx.arc(-10, 10, 3, 0, Math.PI * 2);
         ctx.fill();
-        
+
         ctx.restore();
-        
+
         // Полоска здоровья
         const healthBarWidth = 50;
         const healthBarHeight = 6;
         const healthPercentage = this.health / this.maxHealth;
-        
+
         // Фон полоски
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(this.x - healthBarWidth/2 - 1, this.y - this.height/2 - 16, healthBarWidth + 2, healthBarHeight + 2);
-        
+        ctx.fillRect(this.x - healthBarWidth / 2 - 1, this.y - this.height / 2 - 16, healthBarWidth + 2, healthBarHeight + 2);
+
         // Полоска здоровья
         const healthColor = this.berserkMode ? '#ff6600' : (healthPercentage > 0.5 ? '#00ff00' : '#ffff00');
         ctx.fillStyle = healthColor;
-        ctx.fillRect(this.x - healthBarWidth/2, this.y - this.height/2 - 15, healthBarWidth * healthPercentage, healthBarHeight);
-        
+        ctx.fillRect(this.x - healthBarWidth / 2, this.y - this.height / 2 - 15, healthBarWidth * healthPercentage, healthBarHeight);
+
         // Индикатор берсерк режима
         if (this.berserkMode) {
             ctx.font = 'bold 10px Arial';
             ctx.fillStyle = '#ff0000';
             ctx.textAlign = 'center';
-            ctx.fillText('BERSERK!', this.x, this.y - this.height/2 - 25);
+            ctx.fillText('BERSERK!', this.x, this.y - this.height / 2 - 25);
         }
-        
+
         // Рисуем пули
         this.bullets.forEach(bullet => bullet.draw());
     }
-    
+
     takeDamage(damage) {
         if (this.health - damage <= 0) {
-            if(!this.secondLife){
+            if (!this.secondLife) {
                 this.secondLife = true;
                 this.health = 1;
             }
-            else{
+            else {
                 this.active = false;
             }
         }
