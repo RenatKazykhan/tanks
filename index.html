@@ -72,9 +72,10 @@
 
             <!-- Кнопки модулей (правая сторона: вооружение) -->
             <div class="module-buttons-right">
-                <button class="module-btn" data-module="gun" onclick="selectModuleBtn('gun')">
+                <div class="guns-wrapper">
+                    <button class="module-btn" data-module="gun" onclick="selectModuleBtn('gun')">
                     <img class="module-btn-img" src="assets/icon_gun.png" alt="Орудие">
-                    <span class="module-btn-name">Орудие</span>
+                    <span class="module-btn-name">Пушка</span>
                     <span class="module-btn-level" id="gunLevelBadge">Ур. 0</span>
                     <div class="module-mini-progress">
                         <div class="module-mini-fill" id="gunMiniFill" style="width: 0%"></div>
@@ -88,6 +89,7 @@
                         <div class="module-mini-fill" id="laserMiniFill" style="width: 0%"></div>
                     </div>
                 </button>
+                </div>
                 <button class="module-btn" data-module="turret" onclick="selectModuleBtn('turret')">
                     <img class="module-btn-img" src="assets/icon_turret.png" alt="Башня">
                     <span class="module-btn-name">Башня</span>
@@ -323,6 +325,7 @@
     <script src="js/skills/lifesteal.js"></script>
     <script src="js/skills/doubleShoot.js"></script>
     <script src="js/skills/drone.js"></script>
+    <script src="js/skills/laser.js"></script>
 
     <script src="js/playerTank.js"></script>
 

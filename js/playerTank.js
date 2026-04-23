@@ -30,8 +30,9 @@ class PlayerTank {
         this.bodyRotationSpeed = 3;
 
         this.accuracy = 0.95; // Точность стрельбы
+        this.lastLaserSound = 0;
 
-        // Эффекты заморозки
+        // Эффекты замедления
         this.slowEffect = 1; // Множитель скорости (1 = нормальная скорость)
 
         this.skillPoints = 1;
@@ -41,10 +42,8 @@ class PlayerTank {
         this.lifestealSkill = new Lifesteal(this);
         this.doubleShootSkill = new DoubleShoot(this);
         this.droneSkill = new DroneSkill(this);
-        // Телепортация
         this.teleportSkill = new Teleport(this);
-
-        // Энергетический взрыв 
+        this.laser = new LaserExplosion(this);
         this.blastSkill = new Blast(this);
 
         this.isMoveForward = false;
@@ -141,6 +140,9 @@ class PlayerTank {
             if (this.equippedWeapon == 'gun') {
                 this.doubleShootSkill.activate();
             }
+            else if(this.equippedWeapon == 'laser') {
+                this.laser.activate(enemies, mouseX, mouseY);
+            }
         }
 
         // Активация залпа дронов
@@ -162,6 +164,8 @@ class PlayerTank {
 
         // Обновляем двойной выстрел
         this.doubleShootSkill.update(deltaTime);
+
+        this.laser.updateVisualEffects(deltaTime);
 
         // Регенерация щита
         if (this.shieldSkill.shield < this.shieldSkill.maxShield && !this.shieldSkill.shieldBroken) {
@@ -273,6 +277,14 @@ class PlayerTank {
         const startX = this.x + dx * 20;
         const startY = this.y + dy * 20;
 
+         // === ЗВУК ЛАЗЕРА С ОГРАНИЧЕНИЕМ ЧАСТОТЫ ===
+        if (!this.lastLaserSound) this.lastLaserSound = 0;
+        const now = Date.now();
+        if (now - this.lastLaserSound > 100) { // каждые 180мс — новый звук
+            soundManager.playLaserShoot();
+            this.lastLaserSound = now;
+        }
+
         this.laserTargetX = startX + dx * rayLen;
         this.laserTargetY = startY + dy * rayLen;
 
@@ -321,6 +333,15 @@ class PlayerTank {
 
             if (!hitEnemy.active && typeof enemyDead === 'function') {
                 enemyDead(hitEnemy.x, hitEnemy.y);
+            }
+
+            if (this.laser && this.laser.hasChainLaser) {
+                this.laser.onLaserHit(
+                    hitEnemy.x, hitEnemy.y,
+                    damageToDeal,
+                    this.angle,
+                    [hitEnemy] // массив уже поражённых врагов
+                );
             }
         }
 
@@ -1096,6 +1117,7 @@ class PlayerTank {
         this.regenerationSkill.draw();
         this.teleportSkill.draw();
         this.blastSkill.draw();
+        this.laser.draw();
         this.shieldSkill.draw(enemies);
         this.lifestealSkill.draw();
         if (this.equippedWeapon == 'gun') {

@@ -7,17 +7,17 @@ class Tiger2 {
         this.width = 55;
         this.height = 48;
         this.speed = 65;
-        this.health = 400;
-        this.maxHealth = 400;
-        this.damage = 60;
+        this.health = 600;
+        this.maxHealth = 600;
+        this.damage = 80;
         this.angle = Math.random() * Math.PI * 2;
         this.bodyAngle = this.angle;
         this.targetBodyAngle = this.bodyAngle;
         this.bullets = [];
         this.lastShot = 0;
-        this.shotCooldown = 1800;
+        this.shotCooldown = 1200;
         this.active = true;
-        this.bulletSpeed = 500;
+        this.bulletSpeed = 800;
         this.accuracy = 0.92;
         this.trackOffset = 0;
 

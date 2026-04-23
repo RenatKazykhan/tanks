@@ -146,6 +146,16 @@ class UpdateUIManager {
                 ]
             },
             {
+                icon: '💥', name: 'Лазерная вечеринка', key: 'C',
+                level: player.laser.level, maxLevel: 5,
+                desc: 'переходящий лазер + залп вокруг себя',
+                stats: [
+                    ['Лучи', prog([8, 10, 12, 14, 16], player.laser.level)],
+                    ['Количество отскоков', prog([0, 1, 1, 2, 2], player.laser.level)],
+                    ['Перезарядка', prog([10000, 8000, 6000, 5000, 4000], player.laser.level, 'с')],
+                ]
+            },
+            {
                 icon: '🛸', name: 'Дрон-камикадзе', key: 'X',
                 level: player.droneSkill.level, maxLevel: 5,
                 desc: 'Пассивный дрон + активный залп дронов',
@@ -159,6 +169,8 @@ class UpdateUIManager {
         ];
 
         skills.forEach(s => {
+            if(player.equippedWeapon == 'gun' && s.name == 'Лазерная вечеринка') return;
+            if(player.equippedWeapon == 'laser' && s.name == 'Двойной выстрел') return;
             const card = document.createElement('div');
             card.className = 'skill-icon-card' + (s.level > 0 ? ' skill-active' : ' skill-locked');
 

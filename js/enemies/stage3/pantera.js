@@ -6,18 +6,18 @@ class Pantera {
         this.y = y;
         this.width = 50;
         this.height = 42;
-        this.speed = 100;
-        this.health = 250;
-        this.maxHealth = 250;
-        this.damage = 45;
+        this.speed = 120;
+        this.health = 350;
+        this.maxHealth = 350;
+        this.damage = 70;
         this.angle = Math.random() * Math.PI * 2;
         this.bodyAngle = this.angle;
         this.targetBodyAngle = this.bodyAngle;
         this.bullets = [];
         this.lastShot = 0;
-        this.shotCooldown = 1200;
+        this.shotCooldown = 1000;
         this.active = true;
-        this.bulletSpeed = 550;
+        this.bulletSpeed = 750;
         this.accuracy = 0.90;
         this.trackOffset = 0;
 

@@ -43,12 +43,12 @@ function initEventHandlers() {
                 e.preventDefault();
                 return;
             }
-            if (e.key.toLowerCase() === 'c' && player.doubleShootSkill) {
+            if (e.key.toLowerCase() === 'c') {
                 if (player.equippedWeapon == 'gun') {
                     player.doubleShootSkill.upgrade();
                 }
                 else if (player.equippedWeapon == 'laser') {
-
+                    player.laser.upgrade()
                 }
                 e.preventDefault();
                 return;

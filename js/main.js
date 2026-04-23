@@ -149,6 +149,17 @@ function gameLoop() {
         updateStage3(deltaTime);
     }
 
+    if (player.laser.hasChainLaser) {
+        player.laser.updateVisualEffects(deltaTime);
+    }
+
+    // In the drawing section, after drawing player's skills:
+
+    // Draw chain laser effects
+    if (player.laser.hasChainLaser) {
+        player.laser.draw();
+    }
+
     // Проверка столкновений игрока со стенами
     walls.forEach(wall => {
         if (isInCameraView(wall)) {
@@ -222,6 +233,12 @@ function gameLoop() {
     biomeManager.drawDecorations();
 
     // Рисование
+    walls.forEach(wall => {
+        if (isInCameraView(wall)) {
+            biomeManager.drawWall(wall);
+        }
+    });
+
     // Рисуем только видимых врагов
     enemies.forEach(enemy => {
         if (fogOfWar.isVisible(enemy.x, enemy.y, player.x, player.y)) {
@@ -241,12 +258,6 @@ function gameLoop() {
     powerUps.forEach(powerUp => {
         if (fogOfWar.isVisible(powerUp.x, powerUp.y, player.x, player.y)) {
             powerUp.draw();
-        }
-    });
-
-    walls.forEach(wall => {
-        if (isInCameraView(wall)) {
-            biomeManager.drawWall(wall);
         }
     });
 

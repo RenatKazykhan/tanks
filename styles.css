@@ -236,7 +236,6 @@ button:hover {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 24px;
-    margin-top: 24px;
 }
 
 .hangar-center-spacer {
@@ -1362,4 +1361,8 @@ button:disabled {
     color: #0ff;
     font-weight: bold;
     text-shadow: 0 0 4px rgba(0,255,255,0.5);
+}
+
+.guns-wrapper {
+    display: flex;
 }
