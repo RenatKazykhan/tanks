@@ -1117,11 +1117,10 @@ class PlayerTank {
         this.regenerationSkill.draw();
         this.teleportSkill.draw();
         this.blastSkill.draw();
-        this.laser.draw();
         this.shieldSkill.draw(enemies);
         this.lifestealSkill.draw();
-        if (this.equippedWeapon == 'gun') {
-
+        if (this.equippedWeapon == 'laser') {
+            this.laser.draw();
         }
         else if (this.equippedWeapon == 'gun') {
             this.doubleShootSkill.draw();

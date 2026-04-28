@@ -1366,3 +1366,19 @@ button:disabled {
 .guns-wrapper {
     display: flex;
 }
+
+/* Add stage 4 card styling */
+.stage-card.stage-4 {
+    background: linear-gradient(135deg, #1a3a5f 0%, #0f2a4a 100%);
+    border-color: #3a7ca5;
+}
+
+.stage-card.stage-4:hover:not(.locked) {
+    border-color: #3a7ca5;
+    box-shadow: 0 5px 15px rgba(58, 124, 165, 0.3);
+}
+
+.stage-card.stage-4.completed {
+    background: linear-gradient(135deg, #1a4a5f 0%, #0f3a4a 100%);
+    border-color: #3a7ca5;
+}

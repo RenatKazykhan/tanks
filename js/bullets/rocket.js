@@ -15,7 +15,7 @@ class Rocket {
         this.maxTrailLength = 10;
         this.lifetime = 5000; // 5 секунд жизни
         this.createdAt = Date.now();
-        this.isIceBullet = false; // Флаг для льда
+        this.isRocket = true;
         this.vx = Math.cos(angle) * this.speed;
         this.vy = Math.sin(angle) * this.speed;
     }

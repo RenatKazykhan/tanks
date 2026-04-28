@@ -172,7 +172,7 @@ class Turret {
         this.health -= damage;
         if (this.health <= 0) {
             this.active = false;
-            createExplosion(this.x, this.y, '#666666');
+            visualEffects.createExplosion(this.x, this.y, '#666666');
             score += 30;
             xpManager.addXP(15);
         }

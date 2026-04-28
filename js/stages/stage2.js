@@ -1,69 +1,10 @@
 // ===== ЭТАП 2: переменные =====
-let stage2Enemies = [];
-let stage2Turrets = [];
 let stage2Exit = { x: 0, y: 0, width: 60, height: 60 };
 let stage2Zones = []; // Зоны появления врагов
 
 // ===== ЭТАП 2: инициализация / сброс =====
 function resetStage2() {
-    stage2Enemies = [];
-    stage2Turrets = [];
     stage2Zones = [];
-}
-
-// ===== ЭТАП 2: обновление турелей (вызывается из gameLoop) =====
-function updateStage2Turrets(deltaTime) {
-    stage2Turrets.forEach(turret => {
-        if (turret.active == true) {
-            if (turret.bullets.length > 0 || fogOfWar.isVisible(turret.x, turret.y, player.x, player.y)) {
-                turret.update(player.x, player.y, deltaTime);
-            }
-
-            turret.bullets = turret.bullets.filter(bullet => {
-                let hitWall = false;
-                walls.forEach(wall => {
-                    if (wall.checkCollisionWithCircle(bullet.x, bullet.y, bullet.radius)) {
-                        hitWall = true;
-                    }
-                });
-                return bullet.active && !hitWall;
-            });
-
-            // Проверяем столкновения пуль турелей с игроком
-            turret.bullets.forEach(bullet => {
-                if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
-                    player.takeDamage(bullet.damage, bullet.x, bullet.y, bullet.vx, bullet.vy);
-                    bullet.active = false;
-                }
-            });
-
-            // Проверяем столкновения пуль игрока с турелями
-            player.bullets.forEach(bullet => {
-                if (bullet.active && checkCollisionManager.checkCollision(bullet, turret, bullet.radius, turret.radius)) {
-                    turret.takeDamage(bullet.damage);
-                    bullet.active = false;
-                }
-            });
-        }
-    });
-}
-
-// ===== ЭТАП 2: отрисовка турелей (вызывается из gameLoop) =====
-function drawStage2Turrets() {
-    stage2Turrets.forEach(turret => {
-        if (turret.active && fogOfWar.isVisible(turret.x, turret.y, player.x, player.y)) {
-            turret.draw();
-        }
-
-        // Снаряды рисуем всегда, если они в зоне видимости игрока
-        if (turret.active && turret.bullets && turret.bullets.length > 0) {
-            turret.bullets.forEach(bullet => {
-                if (fogOfWar.isVisible(bullet.x, bullet.y, player.x, player.y)) {
-                    bullet.draw();
-                }
-            });
-        }
-    });
 }
 
 // ===== ЭТАП 2: проверка выхода =====

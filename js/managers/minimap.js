@@ -21,19 +21,6 @@ class Minimap {
         this.minimapCtx.strokeRect(0, 0, this.minimapCanvas.width, this.minimapCanvas.height);
 
         if (currentStage === 2) {
-            // Отрисовка турелей
-            this.minimapCtx.fillStyle = '#ff00ff';
-            stage2Turrets.forEach(turret => {
-                if (turret.active) {
-                    this.minimapCtx.fillRect(
-                        turret.x * this.minimapScale.x - 2,
-                        turret.y * this.minimapScale.y - 2,
-                        4,
-                        4
-                    );
-                }
-            });
-
             // Отрисовка выхода (если активен)
             if (enemies.length === 0 && stage2Zones.every(zone => zone.activated === true)) {
                 this.minimapCtx.fillStyle = '#00ff00';

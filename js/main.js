@@ -99,8 +99,6 @@ function gameLoop() {
         return true;
     });
 
-
-
     // Обновление врагов
     enemies = enemies.filter(enemy => {
         if (enemy.active) {
@@ -141,19 +139,41 @@ function gameLoop() {
         return false;
     });
 
-    if (currentStage === 2) {
-        updateStage2Turrets(deltaTime);
-    }
+    if (currentStage === 4) {
+        updateStage4(deltaTime, enemies, player);        
+        
+        player.bullets.forEach(bullet => {
+            if (!bullet.active) return;
+            
+            // База 1
+            if (stage4Base && stage4Base.active && checkCollisionManager.checkCollision(bullet, stage4Base, bullet.radius, stage4Base.width / 2)) {
+                stage4Base.takeDamage(bullet.damage);
+                bullet.active = false;
+                return;
+            }
 
-    if (currentStage === 3) {
-        updateStage3(deltaTime);
+            // База 2
+            if (stage4Base2 && stage4Base2.active && checkCollisionManager.checkCollision(bullet, stage4Base2, bullet.radius, stage4Base2.width / 2)) {
+                stage4Base2.takeDamage(bullet.damage);
+                bullet.active = false;
+                return;
+            }
+            
+            // Здания
+            for (const building of stage4Buildings) {
+                if (!building.active) continue;
+                if (checkCollisionManager.checkCollision(bullet, building, bullet.radius, building.width / 2)) {
+                    building.takeDamage(bullet.damage);
+                    bullet.active = false;
+                    break;
+                }
+            }
+        });
     }
 
     if (player.laser.hasChainLaser) {
         player.laser.updateVisualEffects(deltaTime);
     }
-
-    // In the drawing section, after drawing player's skills:
 
     // Draw chain laser effects
     if (player.laser.hasChainLaser) {
@@ -261,14 +281,14 @@ function gameLoop() {
         }
     });
 
-    if (currentStage === 2) {
-        drawStage2Turrets();
-    }
-
     // Этап 3: заколка и выход
     if (currentStage === 3) {
-        drawStage3Hairpin();
         drawStage3Exit();
+    }
+
+    // Этап 4: база врага
+    if (currentStage === 4) {
+        drawStage4();
     }
 
     // Рисование молний
@@ -331,11 +351,6 @@ function gameLoop() {
     // XP-бар
     xpManager.draw();
 
-    // Индикатор направления к заколке (этап 3)
-    if (currentStage === 3) {
-        drawHairpinIndicator();
-    }
-
     checkVictoryCondition();
     requestAnimationFrame(gameLoop);
 }
@@ -375,21 +390,33 @@ function checkVictoryCondition() {
     else if (currentStage === 3) {
         checkStage3Victory();
     }
+    else if (currentStage === 4) {
+        checkStage4Victory();
+    }
+    else if (currentStage === 5) {
+        if (checkStage5Victory()) {
+            showVictory();
+        }
+    }
 }
 
 
 
-// Упрвление этапами
+// Упрление этапами
 let currentStage = 1;
 let stageRecords = {
     1: 0,
     2: 0,
-    3: 0
+    3: 0,
+    4: 0,
+    5: 0
 };
 let stageUnlocked = {
     1: true,
     2: false,
-    3: false
+    3: false,
+    4: false,
+    5: false
 };
 
 
@@ -408,6 +435,10 @@ function selectStage(stageId) {
         resetStage2();
     } else if (stageId === 3) {
         resetStage3();
+    } else if (stageId === 4) {
+        resetStage4();
+    } else if (stageId === 5) {
+        resetStage5();
     }
 
     // Обновляем рекорд
@@ -438,11 +469,13 @@ function updateStagesUI() {
         const stageNames = {
             1: { icon: '🌍', name: 'Лесные территории' },
             2: { icon: '🏭', name: 'Промышленная зона' },
-            3: { icon: '🏜️', name: 'Пустынный лабиринт' }
+            3: { icon: '🏜️', name: 'Пустынный лабиринт' },
+            4: { icon: '🧊', name: 'Ледяная база' },
+            5: { icon: '👑', name: 'Финальный босс' }
         };
 
         // Обновляем доступность опций
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 5; i++) {
             const option = stageSelect.querySelector(`option[value="${i}"]`);
             if (option) {
                 const info = stageNames[i];
@@ -524,16 +557,21 @@ function resetGame() {
     lastTime = performance.now();
     soundManager.resume();
 
-    // Сбрасываем состояние этапа 2
+    // Сбрасываем состояние этапов
     if (currentStage === 2) {
         resetStage2();
     } else if (currentStage === 3) {
         resetStage3();
+    } else if (currentStage === 4) {
+        resetStage4();
+    } else if (currentStage === 5) {
+        resetStage5();
     }
 
     // Используем соответствующую карту
     let mapKey = mapManager.getMapKey(currentStage);
-    stage2Exit = mapManager.createMapFromLayout(mapKey, player, walls, powerUps, currentStage === 3 ? stage3Zones : stage2Zones, stage2Turrets, stage2Enemies);
+    let zonesArray = currentStage === 4 ? [] : (currentStage === 3 ? stage3Zones : stage2Zones);
+    stage2Exit = mapManager.createMapFromLayout(mapKey, player, walls, powerUps, zonesArray);
 
     // Для этапа 3 сохраняем выход
     if (currentStage === 3) {
@@ -547,9 +585,25 @@ function resetGame() {
     } else if (currentStage === 3) {
         biomeManager.currentBiome = 'desert';
         biomeManager.init();
+    } else if (currentStage === 4) {
+        biomeManager.currentBiome = 'ice';
+        biomeManager.init();
+    } else if (currentStage === 5) {
+        biomeManager.currentBiome = 'grass'; // можно позже добавить уникальный биом
+        biomeManager.init();
     } else {
         biomeManager.currentBiome = 'grass';
         biomeManager.init();
+    }
+
+    // Инициализация этапа 4
+    if (currentStage === 4) {
+        initStage4(player, walls, powerUps);
+    }
+
+    // Инициализация этапа 5
+    if (currentStage === 5) {
+        initStage5(player, walls, powerUps);
     }
 
     // Инициализация тумана войны
@@ -661,11 +715,24 @@ function showVictory() {
         stageUnlocked[3] = true;
         localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
     }
+    if (currentStage === 3) {
+        stageUnlocked[4] = true;
+        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
+        console.log('Этап 4 разблокирован после прохождения этапа 3');
+    }
+    if (currentStage === 4) {
+        stageUnlocked[5] = true;
+        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
+        console.log('Этап 5 разблокирован после прохождения этапа 4');
+    }
 
     // Скрываем игровые элементы
     document.getElementById('gameOver').style.display = 'none';
     document.getElementById('pauseScreen').style.display = 'none';
     document.getElementById('bonusScreen').style.display = 'none';
+
+    // Обновляем UI этапов
+    updateStagesUI();
 
     // Показываем экран победы
     const victoryScreen = document.getElementById('victory');
@@ -694,7 +761,9 @@ function showVictory() {
     const stagePointsReward = {
         1: 300,
         2: 600,
-        3: 1000
+        3: 1000,
+        4: 1500,
+        5: 2500
     };
     const reward = stagePointsReward[currentStage] || 300;
     points += reward;

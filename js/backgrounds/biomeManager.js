@@ -47,6 +47,15 @@ class BiomeManager {
                 wallColors: { base: '#2a2a2a', dark: '#1a1a1a', light: '#404040', mortar: '#ff6600' },
                 decorTypes: ['lava_rock', 'lava_crack', 'ember_vent', 'charred_tree', 'obsidian'],
                 ambientParticle: 'ember'
+            },
+            ice: {
+                name: 'Ледяная база',
+                baseColor: '#a0c8d8',
+                colors: ['#a0c8d8', '#95bdd0', '#a8d0e0', '#8cc0d0', '#b0d8e8'],
+                gridColor: 'rgba(150, 200, 230, 0.3)',
+                wallColors: { base: '#7090a0', dark: '#507080', light: '#90b0c0', mortar: '#c0dce8' },
+                decorTypes: ['tree_snow', 'rock_snow', 'ice_crystal', 'snow_pile', 'snowman'],
+                ambientParticle: 'snowflake'
             }
         };
 
@@ -63,6 +72,9 @@ class BiomeManager {
         }
         if (currentStage === 3) {
             return 'desert'; // Третий этап — пустыня
+        }
+        if (currentStage === 4) {
+            return 'ice'; // Четвертый этап — ледяная база
         }
         
         // Для первого этапа оставляем прежнюю логику

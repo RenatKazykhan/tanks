@@ -12,9 +12,9 @@ class RocketTank {
         this.angle = Math.random() * Math.PI * 2;
         this.bullets = [];
         this.lastShot = 0;
-        this.shotCooldown = 3500; // Стреляет реже
+        this.shotCooldown = 2000; // Стреляет реже
         this.active = true;
-        this.attackRange = 500; // Дальность атаки
+        this.attackRange = 900; // Дальность атаки
         this.keepDistance = 350; // Держится на расстоянии
     }
 

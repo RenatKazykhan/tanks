@@ -103,6 +103,8 @@ class EnemySpawnManager {
     }
 
     update(deltaTime, currentStage, enemies, biomeManager, stage2Zones) {
+        if(currentStage == 4 || currentStage == 5) return;
+
         if (currentStage === 2 || currentStage === 3) {
             this.handleStage2Spawning(stage2Zones, enemies);
             return;

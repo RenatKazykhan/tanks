@@ -19,10 +19,12 @@ class Particle {
     }
 
     draw() {
-        ctx.globalAlpha = this.life;
+        const alpha = Math.max(0, this.life);
+        const r = Math.max(0, this.radius);
+        ctx.globalAlpha = alpha;
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
     }

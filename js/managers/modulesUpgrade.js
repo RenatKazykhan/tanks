@@ -3,8 +3,8 @@ class ModulesUpgrade {
         this.selectedModuleName = null;
         // Базовые характеристики танка (константы, никогда не меняются)
         this.BASE_TANK_STATS = {
-            health: 200,
-            maxHealth: 200,
+            health: 2000,
+            maxHealth: 2000,
             speed: 100,
             damage: 30,
             fireRate: 1100,
