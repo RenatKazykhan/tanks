@@ -27,11 +27,6 @@ class UpdateUIManager {
         }
     }
 
-    // Обновление полоски здоровья
-    updateHealthBar() {
-        document.getElementById('currentHealth').innerText = Math.max(0, Math.floor(player.health));
-        document.getElementById('MaxHealth').textContent = player.maxHealth.toFixed();
-    }
     // Функция для обновления отображения характеристик в главном меню (устаревшая, для совместимости)
     updateStatsDisplayMainMenu() {
         // Новая система использует модули, так что обновим бэйджи
@@ -164,6 +159,17 @@ class UpdateUIManager {
                     ['Радиус взрыва', prog([60, 70, 80, 90, 110], player.droneSkill.level)],
                     ['Дроны (акт.)', prog([1, 2, 3, 4, 5], player.droneSkill.level)],
                     ['Перезарядка', prog([15, 14, 13, 11, 9], player.droneSkill.level, 'с')],
+                ]
+            },
+            {
+                icon: '⚡', name: 'Ускорение', key: 'Z',
+                level: player.speedSkill.level, maxLevel: 5,
+                desc: 'Пассивное уклонение + активное ускорение и уклонение',
+                stats: [
+                    ['Пассивное уклонение', prog(['5%', '10%', '15%', '20%', '25%'], player.speedSkill.level)],
+                    ['Активное уклонение', prog(['25%', '30%', '35%', '40%', '50%'], player.speedSkill.level)],
+                    ['Длительность', prog([3, 4, 5, 6, 7], player.speedSkill.level, 'с')],
+                    ['Перезарядка', prog([20, 18, 16, 14, 12], player.speedSkill.level, 'с')],
                 ]
             },
         ];

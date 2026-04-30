@@ -58,6 +58,11 @@ function initEventHandlers() {
                 e.preventDefault();
                 return;
             }
+            if (e.key.toLowerCase() === 'z' && player.speedSkill) {
+                player.speedSkill.upgrade();
+                e.preventDefault();
+                return;
+            }
         }
 
         keys[e.key] = true;
@@ -133,6 +138,10 @@ function initEventHandlers() {
             }
             // Проверяем клик по кнопке улучшения дрона
             if (player.droneSkill && player.droneSkill.checkUpgradeClick(clickX, clickY)) {
+                return;
+            }
+            // Проверяем клик по кнопке улучшения ускорения
+            if (player.speedSkill && player.speedSkill.checkUpgradeClick(clickX, clickY)) {
                 return;
             }
 

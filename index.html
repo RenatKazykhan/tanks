@@ -25,6 +25,7 @@
             <div class="stage-select-wrapper">
                 <label for="stageSelect" class="stage-label">Этап:</label>
                 <select id="stageSelect" class="stage-dropdown" onchange="selectStage(parseInt(this.value))">
+                    <!-- Опции будут сгенерированы динамически через updateStagesUI() -->
                     <option value="1" data-stage="1">🌍 Лесные территории</option>
                     <option value="2" data-stage="2" disabled>🔒 Промышленная зона</option>
                     <option value="3" data-stage="3" disabled>🔒 Пустынный лабиринт</option>
@@ -163,13 +164,6 @@
                     Рекорд: <span id="recordScoreValue">0</span>
                 </div>
             </div>
-
-            <div> Волна: <span id="waveValue">0</span></div>
-
-            <div>
-                <div>Здоровье: <span id="currentHealth">100</span></div>
-                <div>Макс. здоровье: <span id="MaxHealth">100</span></div>
-            </div>
             <button id="pauseBtn" onclick="togglePause()">Пауза</button>
             <button id="soundBtn" onclick="toggleSound()" style="margin-left:5px">🔊</button>
         </div>
@@ -256,7 +250,7 @@
         </div>
         <div id="victory">
             <div class="victory-title">🏆 ПОБЕДА! 🏆</div>
-            <div class="victory-subtitle">Поздравляем! Вы прошли все волны!</div>
+            <div class="victory-subtitle">Поздравляем! Вы прошли уровень!</div>
             <div>Ваш счет: <span id="victoryScore">0</span></div>
             <button onclick="resetGame()" class="victory-button">Играть снова</button>
             <button onclick="backToMenu()" class="menu-btn">В главное меню</button>
@@ -328,6 +322,7 @@
     <script src="js/skills/doubleShoot.js"></script>
     <script src="js/skills/drone.js"></script>
     <script src="js/skills/laser.js"></script>
+    <script src="js/skills/speed.js"></script>
 
     <script src="js/playerTank.js"></script>
 
@@ -351,6 +346,7 @@
     <script src="js/enemies/iceTank.js"></script>
     <script src="js/enemies/veerTank.js"></script>
     <script src="js/enemies/turret.js"></script>
+    <script src="js/enemies/wallTurret.js"></script>
     <script src="js/enemies/enemyBase.js"></script>
     <script src="js/enemies/enemyBuilding.js"></script>
     <script src="js/enemies/stage2/tiger1.js"></script>
@@ -368,17 +364,24 @@
     <script src="js/managers/statManager.js"></script>
     <script src="js/managers/bonusManager.js"></script>
     <script src="js/managers/checkCollisionsManager.js"></script>
-    <script src="js/managers/enemySpawnManager.js"></script>
     <script src="js/managers/mapManager.js"></script>
     <script src="js/managers/minimap.js"></script>
     <script src="js/managers/modulesUpgrade.js"></script>
     <script src="js/managers/visualEffects.js"></script>
 
     <script src="js/managers/fogOfWarManager.js"></script>
-    <script src="js/stages/stage2.js"></script>
-    <script src="js/stages/stage3.js"></script>
     <script src="js/stages/stage4.js"></script>
     <script src="js/stages/stage5.js"></script>
+    
+    <!-- Новые файлы для автоматизации 25 этапов -->
+    <script src="js/stages/stageConfig.js"></script>
+    <script src="js/stages/stageHandlers/survivalStage.js"></script>
+    <script src="js/stages/stageHandlers/mazeStage.js"></script>
+    <script src="js/stages/stageHandlers/exitStage.js"></script>
+    <script src="js/stages/stageHandlers/baseStage.js"></script>
+    <script src="js/stages/stageHandlers/bossStage.js"></script>
+    <script src="js/stages/stageManager.js"></script>
+    
     <script src="js/ui/moduleIcons.js"></script>
     <script src="js/main.js"></script>
 </body>

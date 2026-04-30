@@ -6,19 +6,19 @@ class Tiger2 {
         this.y = y;
         this.width = 55;
         this.height = 48;
-        this.speed = 65;
-        this.health = 600;
-        this.maxHealth = 600;
-        this.damage = 80;
+        this.speed = 75;
+        this.health = 1600;
+        this.maxHealth = 1600;
+        this.damage = 180;
         this.angle = Math.random() * Math.PI * 2;
         this.bodyAngle = this.angle;
         this.targetBodyAngle = this.bodyAngle;
         this.bullets = [];
         this.lastShot = 0;
-        this.shotCooldown = 1200;
+        this.shotCooldown = 1000;
         this.active = true;
         this.bulletSpeed = 800;
-        this.accuracy = 0.92;
+        this.accuracy = 1;
         this.trackOffset = 0;
 
         // === Рикошет ===
@@ -368,6 +368,9 @@ class Tiger2 {
         this.health -= damage;
         if (this.health <= 0 || isNaN(this.health)) {
             this.active = false;
+             // Добавляем XP за убийство
+            xpManager.addXP(50 + Math.floor(xpManager.level * 2));
+            powerUps.push(new PowerUp(this.x, this.y, 'health'));    
         }
     }
 
@@ -421,6 +424,9 @@ class Tiger2 {
         this.health -= damage;
         if (this.health <= 0 || isNaN(this.health)) {
             this.active = false;
+             // Добавляем XP за убийство
+            xpManager.addXP(50 + Math.floor(xpManager.level * 2));
+            powerUps.push(new PowerUp(this.x, this.y, 'health'));    
         }
     }
 

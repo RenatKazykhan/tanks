@@ -7,15 +7,15 @@ class Pantera {
         this.width = 50;
         this.height = 42;
         this.speed = 120;
-        this.health = 350;
-        this.maxHealth = 350;
+        this.health = 750;
+        this.maxHealth = 750;
         this.damage = 70;
         this.angle = Math.random() * Math.PI * 2;
         this.bodyAngle = this.angle;
         this.targetBodyAngle = this.bodyAngle;
         this.bullets = [];
         this.lastShot = 0;
-        this.shotCooldown = 1000;
+        this.shotCooldown = 500;
         this.active = true;
         this.bulletSpeed = 750;
         this.accuracy = 0.90;
@@ -368,6 +368,9 @@ class Pantera {
         this.health -= damage;
         if (this.health <= 0 || isNaN(this.health)) {
             this.active = false;
+            // Добавляем XP за убийство
+            xpManager.addXP(50 + Math.floor(xpManager.level * 2));
+            powerUps.push(new PowerUp(this.x, this.y, 'health'));  
         }
     }
 
@@ -420,6 +423,9 @@ class Pantera {
         this.health -= damage;
         if (this.health <= 0 || isNaN(this.health)) {
             this.active = false;
+            // Добавляем XP за убийство
+            xpManager.addXP(50 + Math.floor(xpManager.level * 2));
+            powerUps.push(new PowerUp(this.x, this.y, 'health'));            
         }
     }
 

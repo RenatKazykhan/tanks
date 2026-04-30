@@ -10,7 +10,7 @@ class EnemyBuilding {
         this.height = 50;
         this.type = type;
         this.active = true;
-        
+        this.aliveTime = 0;
         this.setupByType();
         
         this.health = this.maxHealth;
@@ -29,7 +29,7 @@ class EnemyBuilding {
         this.windowFlicker = Math.random() * Math.PI * 2;
         this.chimneyTimer = 0;
         this.ambientParticles = [];
-        
+        this.bullets = [];
         // Генерируем случайные трещины для повреждённого состояния
         this.generateCracks();
     }
@@ -101,7 +101,7 @@ class EnemyBuilding {
         }
     }
 
-    update(deltaTime, enemies, waveNumber = 1) {
+    update() {
         if (!this.active) return;
 
         this.pulsePhase += deltaTime * 3;
@@ -180,12 +180,14 @@ class EnemyBuilding {
             if (p.life <= 0) this.ambientParticles.splice(i, 1);
         }
 
+        this.aliveTime += deltaTime;
+
         // Спавн врага
         if (this.spawnTimer >= this.spawnInterval) {
             this.spawnTimer = 0;
             this.shakeAmount = 2;
             this.addSparks(3);
-            this.spawnEnemy(enemies, waveNumber);
+            this.spawnEnemy();
         }
     }
 
@@ -215,7 +217,7 @@ class EnemyBuilding {
         }
     }
 
-    spawnEnemy(enemies, waveNumber) {
+    spawnEnemy() {
         if (!this.active) return;
 
         let EnemyClass;
@@ -242,8 +244,8 @@ class EnemyBuilding {
         const spawnY = this.y + Math.sin(angle) * distance;
 
         const enemy = new EnemyClass(spawnX, spawnY);
-        
-        const multiplier = 1 + (waveNumber - 1) * 0.15;
+        const minutesAlive = this.aliveTime / 30;
+        const multiplier = 1 + minutesAlive * 0.15;
         enemy.health = Math.floor(enemy.health * multiplier);
         enemy.maxHealth = enemy.health;
         enemy.damage = Math.floor(enemy.damage * multiplier);

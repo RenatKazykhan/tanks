@@ -66,7 +66,8 @@ class BiomeManager {
     }
 
     // Выбрать биом на основе номера волны
-      getBiomeForWave(tankIndex) {
+      getBiomeForStage() {
+        if(currentStage == 1) return 'grass';
         if (currentStage === 2) {
             return 'lava'; // Второй этап — вулканические пустоши
         }
@@ -76,13 +77,7 @@ class BiomeManager {
         if (currentStage === 4) {
             return 'ice'; // Четвертый этап — ледяная база
         }
-        
-        // Для первого этапа оставляем прежнюю логику
-        if (tankIndex <= 15) return 'grass';
-        else if (tankIndex <= 30) return 'snow';
-        else if (tankIndex <= 60) return 'lava';
-        else if (tankIndex <= 120) return 'desert';
-        else return 'grass';
+        return 'grass';
     }
 
     // Применить биом (перегенерировать фон)

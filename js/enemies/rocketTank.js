@@ -14,8 +14,8 @@ class RocketTank {
         this.lastShot = 0;
         this.shotCooldown = 2000; // Стреляет реже
         this.active = true;
-        this.attackRange = 900; // Дальность атаки
-        this.keepDistance = 350; // Держится на расстоянии
+        this.attackRange = 800; // Дальность атаки
+        this.keepDistance = 550; // Держится на расстоянии
     }
 
     // для способностей

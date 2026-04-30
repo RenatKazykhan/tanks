@@ -22,20 +22,20 @@ class Minimap {
 
         if (currentStage === 2) {
             // Отрисовка выхода (если активен)
-            if (enemies.length === 0 && stage2Zones.every(zone => zone.activated === true)) {
+            if (enemies.length === 0 && stageManager.handler.zones.every(zone => zone.activated === true)) {
                 this.minimapCtx.fillStyle = '#00ff00';
                 this.minimapCtx.fillRect(
-                    stage2Exit.x * this.minimapScale.x,
-                    stage2Exit.y * this.minimapScale.y,
-                    stage2Exit.width * this.minimapScale.x,
-                    stage2Exit.height * this.minimapScale.y
+                    stageManager.handler.x * this.minimapScale.x,
+                    stageManager.handler.y * this.minimapScale.y,
+                    stageManager.handler.width * this.minimapScale.x,
+                    stageManager.handler.height * this.minimapScale.y
                 );
             }
 
             // Отрисовка зон активации
             this.minimapCtx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
             this.minimapCtx.lineWidth = 1;
-            stage2Zones.forEach(zone => {
+            stageManager.handler.zones.forEach(zone => {
                 if (!zone.activated) {
                     this.minimapCtx.beginPath();
                     this.minimapCtx.arc(
@@ -51,48 +51,14 @@ class Minimap {
         }
 
         if (currentStage === 3) {
-            // Отрисовка заколки на миникарте
-            if (stage3Hairpin && !stage3HairpinFound) {
-                const pulse = Math.sin(Date.now() * 0.005) * 0.3 + 0.7;
-                this.minimapCtx.fillStyle = `rgba(255, 215, 0, ${pulse})`;
-                this.minimapCtx.beginPath();
-                this.minimapCtx.arc(
-                    stage3Hairpin.x * this.minimapScale.x,
-                    stage3Hairpin.y * this.minimapScale.y,
-                    4,
-                    0,
-                    Math.PI * 2
-                );
-                this.minimapCtx.fill();
-            }
-
             // Отрисовка выхода (если заколка найдена)
-            if (stage3HairpinFound) {
-                this.minimapCtx.fillStyle = '#00ff00';
-                this.minimapCtx.fillRect(
-                    stage3Exit.x * this.minimapScale.x,
-                    stage3Exit.y * this.minimapScale.y,
-                    stage3Exit.width * this.minimapScale.x,
-                    stage3Exit.height * this.minimapScale.y
-                );
-            }
-
-            // Отрисовка зон активации Tiger2
-            this.minimapCtx.strokeStyle = 'rgba(255, 100, 0, 0.4)';
-            this.minimapCtx.lineWidth = 1;
-            stage3Zones.forEach(zone => {
-                if (!zone.activated) {
-                    this.minimapCtx.beginPath();
-                    this.minimapCtx.arc(
-                        zone.x * this.minimapScale.x,
-                        zone.y * this.minimapScale.y,
-                        zone.radius * this.minimapScale.x,
-                        0,
-                        Math.PI * 2
-                    );
-                    this.minimapCtx.stroke();
-                }
-            });
+            this.minimapCtx.fillStyle = '#00ff00';
+            this.minimapCtx.fillRect(
+                stageManager.handler.exit.x * this.minimapScale.x,
+                stageManager.handler.exit.y * this.minimapScale.y,
+                stageManager.handler.exit.width * this.minimapScale.x,
+                stageManager.handler.exit.height * this.minimapScale.y
+            );
         }
 
         // Отрисовка игрока

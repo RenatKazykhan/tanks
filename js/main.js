@@ -23,12 +23,14 @@ const checkCollisionManager = new CheckCollisionManager();
 const soundManager = new SoundManager();
 const xpManager = new XPManager();
 const biomeManager = new BiomeManager();
-const enemySpawnManager = new EnemySpawnManager(WORLD_WIDTH, WORLD_HEIGHT);
 const mapManager = new MapManager(WORLD_WIDTH, WORLD_HEIGHT);
 const fogOfWar = new FogOfWar(canvas, 300);
 const minimap = new Minimap();
 const modules = new ModulesUpgrade();
 const visualEffects = new VisualEffects();
+const stageManager = new StageManager();
+
+// Менеджер этапов (автоматизация 25 этапов) будет доступен как window.stageManager после загрузки скриптов
 
 // Красная вспышка при получении урона
 let damageFlash = 0;
@@ -66,7 +68,6 @@ function gameLoop() {
 
     // Обновление игрока
     player.update(keys, mouseX, mouseY, deltaTime);
-    updateUIManager.updateHealthBar();
 
     // Обновление тряски камеры
     cameraShake.update(deltaTime);
@@ -86,9 +87,7 @@ function gameLoop() {
         damageFlash = Math.max(0, damageFlash - deltaTime * 4);
     }
 
-    // Спавн врагов
-    enemySpawnManager.update(deltaTime, currentStage, enemies, biomeManager, currentStage === 3 ? stage3Zones : stage2Zones);
-
+    stageManager.update(deltaTime, player, enemies, walls);
     // Обновление бонусов
     powerUps = powerUps.filter(powerUp => {
         if (Math.sqrt(Math.pow(player.x - powerUp.x, 2) + Math.pow(player.y - powerUp.y, 2)) < 30) {
@@ -128,7 +127,8 @@ function gameLoop() {
             // Проверка столкновений пуль врагов с игроком
             enemy.bullets.forEach(bullet => {
                 if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
-                    player.takeDamage(bullet.damage, bullet.x, bullet.y, bullet.vx, bullet.vy);
+                    if(bullet.isRocket) player.takeDamageBySkill(bullet.damage);
+                    else player.takeDamage(bullet.damage, bullet.x, bullet.y, bullet.vx, bullet.vy);
                     bullet.active = false;
                     updateUIManager.updateScore();
                 }
@@ -138,38 +138,6 @@ function gameLoop() {
         }
         return false;
     });
-
-    if (currentStage === 4) {
-        updateStage4(deltaTime, enemies, player);        
-        
-        player.bullets.forEach(bullet => {
-            if (!bullet.active) return;
-            
-            // База 1
-            if (stage4Base && stage4Base.active && checkCollisionManager.checkCollision(bullet, stage4Base, bullet.radius, stage4Base.width / 2)) {
-                stage4Base.takeDamage(bullet.damage);
-                bullet.active = false;
-                return;
-            }
-
-            // База 2
-            if (stage4Base2 && stage4Base2.active && checkCollisionManager.checkCollision(bullet, stage4Base2, bullet.radius, stage4Base2.width / 2)) {
-                stage4Base2.takeDamage(bullet.damage);
-                bullet.active = false;
-                return;
-            }
-            
-            // Здания
-            for (const building of stage4Buildings) {
-                if (!building.active) continue;
-                if (checkCollisionManager.checkCollision(bullet, building, bullet.radius, building.width / 2)) {
-                    building.takeDamage(bullet.damage);
-                    bullet.active = false;
-                    break;
-                }
-            }
-        });
-    }
 
     if (player.laser.hasChainLaser) {
         player.laser.updateVisualEffects(deltaTime);
@@ -281,12 +249,6 @@ function gameLoop() {
         }
     });
 
-    // Этап 3: заколка и выход
-    if (currentStage === 3) {
-        drawStage3Exit();
-    }
-
-    // Этап 4: база врага
     if (currentStage === 4) {
         drawStage4();
     }
@@ -350,12 +312,13 @@ function gameLoop() {
 
     // XP-бар
     xpManager.draw();
+    stageManager.draw(ctx);
+    // Шкала здоровья
+    xpManager.drawHealthBar(player);
 
     checkVictoryCondition();
     requestAnimationFrame(gameLoop);
 }
-
-
 
 function enemyDead(x, y) {
     visualEffects.createExplosion(x, y); // создает взрывы
@@ -375,71 +338,71 @@ function enemyDead(x, y) {
 
 // Добавляем отдельную функцию проверки победы
 function checkVictoryCondition() {
-    // Проверяем, достигнут ли лимит врагов и нет ли активных врагов
-    if (currentStage === 1 && enemySpawnManager.tankIndex >= enemySpawnManager.maxEnemies && enemies.length === 0 && !isVictory) {
-        // Дополнительная проверка - длительная пауза без спавна
-        setTimeout(() => {
-            if (enemies.length === 0 && !isVictory) {
-                showVictory();
-            }
-        }, 2000); // Ждем 2 секунды для уверенности
+    if (isVictory) return;
+    
+    // Используем stageManager для проверки победы на любом этапе
+    if (stageManager.checkVictory(player, enemies)) {
+        showVictory();
     }
-    else if (currentStage === 2) {
-        checkStage2Victory();
-    }
-    else if (currentStage === 3) {
-        checkStage3Victory();
-    }
-    else if (currentStage === 4) {
-        checkStage4Victory();
-    }
-    else if (currentStage === 5) {
-        if (checkStage5Victory()) {
-            showVictory();
+}
+
+// Управление этапами (теперь через stageManager)
+let currentStage = 1;
+
+// Для обратной совместимости оставляем старые объекты, но расширяем до 25 этапов
+let stageRecords = {};
+
+// Инициализация записей и разблокировок из stageManager
+function initStageVariables() {
+    const saved = localStorage.getItem('tankGameStages');
+    if (saved) {
+        const stages = JSON.parse(saved);
+        for (const [id, unlocked, record] of Object.entries(stages)) {
+            stageUnlocked[id] = unlocked;
         }
     }
 }
 
-
-
-// Упрление этапами
-let currentStage = 1;
-let stageRecords = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0
-};
-let stageUnlocked = {
-    1: true,
-    2: false,
-    3: false,
-    4: false,
-    5: false
-};
-
-
+// Заполнение dropdown опциями для всех 25 этапов
+function populateStageOptions() {
+    const stageSelect = document.getElementById('stageSelect');
+    if (!stageSelect) return;
+    
+    // Если опций меньше 25, добавляем недостающие
+    const currentOptions = stageSelect.querySelectorAll('option').length;
+    if (currentOptions >= 25) return;
+    
+    // Удаляем все опции кроме первой (чтобы избежать дублирования)
+    while (stageSelect.options.length > 1) {
+        stageSelect.remove(1);
+    }
+    
+    // Добавляем опции для этапов 2-25
+    for (let i = 2; i <= 25; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.setAttribute('data-stage', i);
+        option.disabled = true;
+        option.textContent = `🔒 Этап ${i}`;
+        stageSelect.appendChild(option);
+    }
+    
+    console.log(`Добавлены опции для ${24} этапов`);
+}
 
 // Функция выбора этапа (теперь работает с dropdown)
 function selectStage(stageId) {
-    if (!stageUnlocked[stageId]) {
+    // Проверяем разблокирован ли этап через stageManager
+    if (!stageManager.isStageUnlocked(stageId)) {
         // Вернуть dropdown на предыдущее значение
         document.getElementById('stageSelect').value = currentStage;
         return;
     }
 
     currentStage = stageId;
-
-    if (stageId === 2) {
-        resetStage2();
-    } else if (stageId === 3) {
-        resetStage3();
-    } else if (stageId === 4) {
-        resetStage4();
-    } else if (stageId === 5) {
-        resetStage5();
-    }
+    
+    // Устанавливаем этап в stageManager
+    stageManager.setStage(stageId);
 
     // Обновляем рекорд
     updateStageRecordDisplay();
@@ -457,8 +420,6 @@ function updateStageRecordDisplay() {
 
 // Функция обновления статусов этапов
 function updateStagesUI() {
-    stageRecords = JSON.parse(localStorage.getItem('stageRecords')) || stageRecords;
-    stageUnlocked = JSON.parse(localStorage.getItem('stageUnlocked')) || stageUnlocked;
     currentStage = parseInt(localStorage.getItem('currentStage')) || 1;
 
     // Обновляем dropdown
@@ -466,39 +427,26 @@ function updateStagesUI() {
     if (stageSelect) {
         stageSelect.value = currentStage;
 
-        const stageNames = {
-            1: { icon: '🌍', name: 'Лесные территории' },
-            2: { icon: '🏭', name: 'Промышленная зона' },
-            3: { icon: '🏜️', name: 'Пустынный лабиринт' },
-            4: { icon: '🧊', name: 'Ледяная база' },
-            5: { icon: '👑', name: 'Финальный босс' }
-        };
-
-        // Обновляем доступность опций
-        for (let i = 1; i <= 5; i++) {
+        // Обновляем доступность опций для всех 25 этапов
+        for (let i = 1; i <= 25; i++) {
             const option = stageSelect.querySelector(`option[value="${i}"]`);
-            if (option) {
-                const info = stageNames[i];
-                if (stageUnlocked[i]) {
+            if (!option) continue;
+            
+            const stageConfig = stageManager.getStageConfig(i);
+            if (stageConfig) {
+                if (stageConfig.unlocked) {
                     option.disabled = false;
-                    if (stageRecords[i] > 0) {
-                        option.textContent = `${info.icon} ${info.name} ✅`;
-                    } else {
-                        option.textContent = `${info.icon} ${info.name}`;
-                    }
+                    const checkmark = stageConfig.record > 0 ? ' ✅' : '';
+                    option.textContent = `${stageConfig.icon} ${stageConfig.name}${checkmark}`;
                 } else {
                     option.disabled = true;
-                    option.textContent = `🔒 ${info.name}`;
+                    option.textContent = `🔒 ${stageConfig.name}`;
                 }
             }
         }
     }
 
     updateStageRecordDisplay();
-
-    // Сохраняем обновленные данные
-    localStorage.setItem('stageRecords', JSON.stringify(stageRecords));
-    localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
 }
 
 function startGame() {
@@ -528,23 +476,17 @@ function resetGame() {
     camera.x = player.x - camera.width / 2;
     camera.y = player.y - camera.height / 2;
 
-    fogOfWar.setWalls(walls);
     player.resetSkills();
 
     statManager.reset();
     keys.length = 0;
 
-    document.getElementById('waveValue').textContent = 1;
-    enemySpawnManager.reset();
     enemies = [];
     powerUps = [];
     score = 0;
     powerUpSpawnTimer = 0;
     gameRunning = true;
     damageFlash = 0;
-
-    biomeManager.currentBiome = 'grass';
-    biomeManager.init();
 
     bonusManager.resetShuffles();
     xpManager.reset();
@@ -557,53 +499,20 @@ function resetGame() {
     lastTime = performance.now();
     soundManager.resume();
 
-    // Сбрасываем состояние этапов
-    if (currentStage === 2) {
-        resetStage2();
-    } else if (currentStage === 3) {
-        resetStage3();
-    } else if (currentStage === 4) {
-        resetStage4();
-    } else if (currentStage === 5) {
-        resetStage5();
-    }
-
-    // Используем соответствующую карту
-    let mapKey = mapManager.getMapKey(currentStage);
-    let zonesArray = currentStage === 4 ? [] : (currentStage === 3 ? stage3Zones : stage2Zones);
-    stage2Exit = mapManager.createMapFromLayout(mapKey, player, walls, powerUps, zonesArray);
-
-    // Для этапа 3 сохраняем выход
-    if (currentStage === 3) {
-        stage3Exit = stage2Exit;
-    }
-
-    // Устанавливаем биом для этапов
-    if (currentStage === 2) {
-        biomeManager.currentBiome = 'lava';
-        biomeManager.init();
-    } else if (currentStage === 3) {
-        biomeManager.currentBiome = 'desert';
-        biomeManager.init();
-    } else if (currentStage === 4) {
-        biomeManager.currentBiome = 'ice';
-        biomeManager.init();
-    } else if (currentStage === 5) {
-        biomeManager.currentBiome = 'grass'; // можно позже добавить уникальный биом
+    // Сбрасываем состояние этапов через stageManager
+    stageManager.reset();
+    
+    // Инициализируем текущий этап
+    stageManager.init(player, walls, enemies, powerUps);
+    
+    // Устанавливаем биом из конфигурации этапа
+    const stageConfig = stageManager.getCurrentConfig();
+    if (stageConfig) {
+        biomeManager.currentBiome = stageConfig.biome;
         biomeManager.init();
     } else {
         biomeManager.currentBiome = 'grass';
         biomeManager.init();
-    }
-
-    // Инициализация этапа 4
-    if (currentStage === 4) {
-        initStage4(player, walls, powerUps);
-    }
-
-    // Инициализация этапа 5
-    if (currentStage === 5) {
-        initStage5(player, walls, powerUps);
     }
 
     // Инициализация тумана войны
@@ -611,9 +520,6 @@ function resetGame() {
     fogOfWar.setWorldSize(WORLD_WIDTH, WORLD_HEIGHT);
     fogOfWar.init();
     fogOfWar.setWalls(walls);
-    // Убедитесь что стены имеют формат:
-    console.log(walls[0]);
-    // Должно быть: {x: число, y: число, width: число, height: число}
 
     gameLoop();
 }
@@ -676,9 +582,14 @@ function init() {
         document.getElementById('recordScoreValue').textContent = recordScore;
     }
 
+    window.loadStagesFromStorage();
+
     // Загружаем модули
     modules.loadModules();
 
+    // Заполняем опции этапов и инициализируем stageManager
+    populateStageOptions();
+    
     // Инициализируем этапы
     updateStagesUI();
 
@@ -700,31 +611,11 @@ function showVictory() {
 
     console.log('Показываем экран победы для этапа', currentStage);
 
-    // Сохраняем рекорд этапа
-    if (score > stageRecords[currentStage]) {
-        stageRecords[currentStage] = score;
-        localStorage.setItem('stageRecords', JSON.stringify(stageRecords));
-    }
+    // Сохраняем рекорд этапа через stageManager
+    stageManager.updateRecord(score);
 
     // Разблокируем следующий этап
-    if (currentStage === 1 && stageRecords[1] > 0) {
-        stageUnlocked[2] = true;
-        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
-    }
-    if (currentStage === 2 && stageRecords[2] > 0) {
-        stageUnlocked[3] = true;
-        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
-    }
-    if (currentStage === 3) {
-        stageUnlocked[4] = true;
-        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
-        console.log('Этап 4 разблокирован после прохождения этапа 3');
-    }
-    if (currentStage === 4) {
-        stageUnlocked[5] = true;
-        localStorage.setItem('stageUnlocked', JSON.stringify(stageUnlocked));
-        console.log('Этап 5 разблокирован после прохождения этапа 4');
-    }
+    stageManager.unlockNext();
 
     // Скрываем игровые элементы
     document.getElementById('gameOver').style.display = 'none';

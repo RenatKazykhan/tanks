@@ -6,9 +6,9 @@ class KamikazeTank {
         this.width = 40;
         this.height = 30;
         this.speed = 80;
-        this.health = 100;
-        this.maxHealth = 100;
-        this.damage = 15;
+        this.health = 150;
+        this.maxHealth = 150;
+        this.damage = 10;
         this.angle = Math.random() * Math.PI * 2;
         this.bullets = [];
         this.lastShot = 0;
@@ -19,8 +19,8 @@ class KamikazeTank {
         this.kamikazeMode = false;
         this.kamikazeSpeed = 250;
         this.explosionRadius = 100;
-        this.explosionDamage = 300;
-        this.kamikazeActivationHealth = 30; // Активируется при низком здоровье
+        this.explosionDamage = 200;
+        this.kamikazeActivationHealth = 80; // Активируется при низком здоровье
 
         // Визуальные эффекты
         this.pulseAnimation = 0;
@@ -199,7 +199,7 @@ class KamikazeTank {
             // Урон уменьшается с расстоянием
             const damageMultiplier = 1 - (distance / this.explosionRadius);
             const finalDamage = Math.floor(this.explosionDamage * damageMultiplier);
-            player.takeDamage(finalDamage, this.x, this.y);
+            player.takeDamageBySkill(finalDamage);
         }
 
         this.active = false;

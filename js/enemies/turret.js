@@ -14,10 +14,11 @@ class Turret {
         this.bullets = [];
         this.lastShot = Date.now();
         this.shotCooldown = 1000;
-        this.damage = 100;
+        this.damage = 50;
         this.bulletSpeed = 500;
         this.detectionRange = 500;
         this.rotationMode = 'rotating'; // 'rotating' или 'tracking'
+        this.activationRange = 800; // дальность обнаружения игрока
     }
 
     // для способностей
@@ -28,8 +29,26 @@ class Turret {
         }
     }
 
+    _distanceToPlayer(playerX, playerY) {
+        const dx = this.x - playerX;
+        const dy = this.y - playerY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
     update(playerX, playerY, deltaTime) {
         if (!this.active) return;
+
+        // Обновляем пули
+        this.bullets = this.bullets.filter(bullet => {
+            bullet.update(deltaTime);
+            return bullet.active;
+        });
+
+        // Проверяем дальность до игрока
+        const dist = this._distanceToPlayer(playerX, playerY);
+        this.playerInRange = dist <= this.activationRange;
+
+        if (!this.playerInRange) return;
 
         const distance = Math.sqrt(Math.pow(playerX - this.x, 2) + Math.pow(playerY - this.y, 2));
 
@@ -77,12 +96,6 @@ class Turret {
             this.rotationMode = 'rotating';
             this.currentAngle += this.rotationSpeed;
         }
-
-        // Обновляем пули
-        this.bullets = this.bullets.filter(bullet => {
-            bullet.update(deltaTime);
-            return bullet.active;
-        });
     }
 
     shoot(targetX = null, targetY = null) {
@@ -163,9 +176,6 @@ class Turret {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1;
         ctx.strokeRect(this.x - healthBarWidth / 2, healthBarY, healthBarWidth, healthBarHeight);
-
-        // Рисуем пули
-        //t//his.bullets.forEach(bullet => bullet.draw());
     }
 
     takeDamage(damage) {

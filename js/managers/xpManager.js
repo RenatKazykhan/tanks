@@ -5,7 +5,7 @@ class XPManager {
         this.level = 1;
         this.xpToNext = 100;  // XP до следующего уровня
         this.baseXP = 100;
-        this.xpGrowth = 1.1; // множитель роста XP
+        this.xpGrowth = 1.3; // множитель роста XP
         this.pendingLevelUp = false;
 
         // Анимация XP-бара
@@ -159,23 +159,88 @@ class XPManager {
         ctx.restore();
     }
 
+    // Рисование шкалы здоровья в верхней части экрана
+    drawHealthBar(player) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        const barWidth = canvas.width * 0.3; // такая же ширина как у XP-бара
+        const barHeight = 10;
+        const barX = (canvas.width - barWidth) / 2;
+        const barY = 16; // в верхней части экрана
+        const progress = Math.min(1, player.health / player.maxHealth);
+
+        // Фон бара
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.beginPath();
+        ctx.roundRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4, 6);
+        ctx.fill();
+
+        // Рамка
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4, 6);
+        ctx.stroke();
+
+        // Заполнение здоровья (градиент от красного к зеленому)
+        if (progress > 0) {
+            const fillWidth = barWidth * progress;
+            const gradient = ctx.createLinearGradient(barX, barY, barX + fillWidth, barY);
+            gradient.addColorStop(0, '#ef4444'); // красный
+            gradient.addColorStop(0.5, '#f59e0b'); // оранжевый
+            gradient.addColorStop(1, '#22c55e'); // зеленый
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, fillWidth, barHeight, 4);
+            ctx.fill();
+
+            // Блик сверху
+            const shineGrad = ctx.createLinearGradient(barX, barY, barX, barY + barHeight);
+            shineGrad.addColorStop(0, 'rgba(255,255,255,0.3)');
+            shineGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
+            ctx.fillStyle = shineGrad;
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, fillWidth, barHeight, 4);
+            ctx.fill();
+        }
+
+        // Текст здоровья (слева от бара)
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ef4444';
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = '#b91c1c';
+        ctx.fillText(`HP ${Math.floor(player.health)}`, barX - 10, barY + barHeight / 2);
+
+        // Макс. здоровье (справа от бара)
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.shadowBlur = 0;
+        ctx.font = '11px Arial';
+        ctx.fillText(`${player.maxHealth}`, barX + barWidth + 10, barY + barHeight / 2);
+
+        ctx.restore();
+    }
+
     levelUp(player) {
-        player.laserDamage += 7;
-        player.damage += 7;
+        player.laserDamage += 5;
+        player.damage += 5;
         player.health += 50;
-        player.maxHealth += 50;
-        player.bulletSpeed += 25;
-        player.shotCooldown -= 20;
-        player.turretRotationSpeed += 0.2;
+        player.maxHealth += 25;
+        player.bulletSpeed += 15;
+        player.shotCooldown -= 10;
+        player.turretRotationSpeed += 0.1;
         player.bodyRotationSpeed += 0.1;
         player.visibilityRadius += 10;
         fogOfWar.setVisibilityRadius(player.visibilityRadius);
     }
 
     takeBonus(palyer) {
-        player.laserDamage += 7;
-        player.damage += 7;
-        player.health += 50;
+        player.laserDamage += 5;
+        player.damage += 5;
+        player.health += 250;
         player.maxHealth += 25;
         player.shotCooldown -= 10;
     }

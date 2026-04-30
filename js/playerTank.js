@@ -45,6 +45,7 @@ class PlayerTank {
         this.teleportSkill = new Teleport(this);
         this.laser = new LaserExplosion(this);
         this.blastSkill = new Blast(this);
+        this.speedSkill = new SpeedSkill(this);
 
         this.isMoveForward = false;
         this.isMoveBack = false;
@@ -150,6 +151,11 @@ class PlayerTank {
             this.droneSkill.activate();
         }
 
+        // Активация ускорения
+        if (keys['z'] || keys['Z']) {
+            this.speedSkill.activate();
+        }
+
         // Обработка быстрой регенерации
         this.regenerationSkill.update(deltaTime);
 
@@ -164,6 +170,9 @@ class PlayerTank {
 
         // Обновляем двойной выстрел
         this.doubleShootSkill.update(deltaTime);
+
+        // Обновляем ускорение
+        this.speedSkill.update(deltaTime);
 
         this.laser.updateVisualEffects(deltaTime);
 
@@ -1119,6 +1128,7 @@ class PlayerTank {
         this.blastSkill.draw();
         this.shieldSkill.draw(enemies);
         this.lifestealSkill.draw();
+        this.speedSkill.draw();
         if (this.equippedWeapon == 'laser') {
             this.laser.draw();
         }
@@ -1216,6 +1226,39 @@ class PlayerTank {
         }
     }
 
+    takeDamageBySkill(damage) {
+        // Сначала урон идёт по щиту
+        if (this.shieldSkill.hasShield && this.shield > 0) {
+            const shieldDamage = Math.min(this.shield, damage);
+            this.shield -= shieldDamage;
+            damage -= shieldDamage;
+
+            if (this.shieldSkill) {
+                this.shieldSkill.onShieldDamaged(shieldDamage);
+            }
+
+            if (this.shield <= 0) {
+                this.shield = 0;
+            }
+        }
+
+        this.health -= damage;
+        statManager.takeDamages += damage;
+
+        soundManager.playHit();
+        cameraShake.trigger(4 + damage * 0.1);
+        damageFlash = 1;
+
+        if (this.health <= 0) {
+            gameRunning = false;
+            document.getElementById('gameOver').style.display = 'block';
+            document.getElementById('finalScore').textContent = score;
+            if (this.onGameOver) {
+                this.onGameOver();
+            }
+        }
+    }
+
     takeDamage(damage, bulletX, bulletY, bulletVX, bulletVY) {
         // ==================== ПРОВЕРКА РИКОШЕТА ====================
 
@@ -1278,6 +1321,17 @@ class PlayerTank {
         // Проверяем, попал ли снаряд в переднюю часть танка
         const frontArcRange = Math.PI / 4;
         const isFrontalHit = Math.abs(angleDiff) <= frontArcRange;
+
+        // Проверка на уклонение от снарядов (способность ускорения)
+        if (this.speedSkill && this.speedSkill.hasSpeed) {
+            const dodgeChance = this.speedSkill.getDodgeChance();
+            if (dodgeChance > 0 && this.checkBlock(dodgeChance)) {
+                // Визуальный эффект уклонения
+                this.createDodgeEffect(bulletX, bulletY);
+                statManager.blockedByArmor += damage; // Засчитываем как заблокированный урон
+                return;
+            }
+        }
 
         // Проверка на блок
         const blockProbability = this.armor + 25;
@@ -1666,5 +1720,44 @@ class PlayerTank {
         player.droneSkill.level = 0;
         player.droneSkill.hasDrone = false;
         player.droneSkill.drones = [];
+
+        // Ускорение
+        player.speedSkill.level = 0;
+        player.speedSkill.hasSpeed = false;
+        player.speedSkill.isActive = false;
+        player.slowEffect = 1; // Сбрасываем эффект замедления/ускорения
+    }
+
+    createDodgeEffect(x, y) {
+        // Создаем визуальный эффект уклонения
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 100;
+            
+            this.ricochetEffects.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.3 + Math.random() * 0.3,
+                maxLife: 0.3 + Math.random() * 0.3,
+                size: 2 + Math.random() * 3,
+                type: 'spark',
+                color: '#00ffff'
+            });
+        }
+        
+        // Текст "УКЛОНЕНИЕ"
+        this.ricochetEffects.push({
+            x: x,
+            y: y - 20,
+            vx: 0,
+            vy: -30,
+            life: 1.0,
+            maxLife: 1.0,
+            size: 12,
+            type: 'text',
+            text: 'УКЛОНЕНИЕ!'
+        });
     }
 }

@@ -17,7 +17,6 @@ class EnemyBase {
         this.maxWaves = 20;
         this.enemiesPerWave = 3;
         this.enemiesSpawned = 0;
-        this.enemiesAlive = 0;
         this.damageMultiplier = 1.0;
         this.healthMultiplier = 1.0;
         this.speedMultiplier = 1.0;
@@ -47,6 +46,8 @@ class EnemyBase {
         // Трещины
         this.crackLines = [];
         this.generateCracks();
+
+        this.bullets = [];
 
         // Башенки (4 угловые)
         this.towers = [
@@ -135,8 +136,7 @@ class EnemyBase {
         }
     }
 
-    update(deltaTime, enemies, player) {
-        this.enemiesAlive = enemies.filter(e => e.active).length;
+    update() {
         this.pulsePhase += deltaTime * 2;
         this.gearRotation += deltaTime * (this.isSpawning ? 3 : 0.5);
         this.portalRotation += deltaTime * (this.isSpawning ? 4 : 1);
@@ -231,11 +231,11 @@ class EnemyBase {
         this.updateParticles(deltaTime);
 
         // Логика спавна волн
-        if (this.waveNumber < this.maxWaves && this.enemiesAlive < 5) {
+        if (this.waveNumber < this.maxWaves) {
             this.spawnTimer += deltaTime * 1000;
             if (this.spawnTimer >= this.spawnInterval) {
                 this.spawnTimer = 0;
-                this.startNewWave(enemies);
+                this.startNewWave();
             }
         }
 
@@ -293,7 +293,7 @@ class EnemyBase {
         }
     }
 
-    startNewWave(enemies) {
+    startNewWave() {
         this.waveNumber++;
         this.isSpawning = true;
         this.enemiesSpawned = 0;
@@ -316,7 +316,7 @@ class EnemyBase {
         }
     }
 
-    spawnEnemy(enemies) {
+    spawnEnemy() {
         if (!this.active) return;
 
         const EnemyClass = this.getEnemyTypeForWave();
