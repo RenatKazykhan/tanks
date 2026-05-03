@@ -6,7 +6,7 @@
 window.STAGE_TYPES = {
   SURVIVAL: 'survival',  // выживание — продержаться N волн
   MAZE:     'maze',      // лабиринт
-  EXIT:     'exit',      // найти выход
+  DEFENSE:  'defense',   // защитить свою базу на время
   BASE:     'base',      // уничтожить базу врага
   BOSS:     'boss'       // убить босса
 };
@@ -15,7 +15,7 @@ window.STAGE_TYPES = {
 window.STAGE_CYCLE = [
   window.STAGE_TYPES.SURVIVAL,
   window.STAGE_TYPES.MAZE,
-  window.STAGE_TYPES.EXIT,
+  window.STAGE_TYPES.DEFENSE,
   window.STAGE_TYPES.BASE,
   window.STAGE_TYPES.BOSS
 ];
@@ -27,7 +27,7 @@ const BIOMES = ['grass', 'lava', 'desert', 'ice', 'volcano'];
 const STAGE_NAMES = {
   [window.STAGE_TYPES.SURVIVAL]: 'Выживание',
   [window.STAGE_TYPES.MAZE]: 'Лабиринт',
-  [window.STAGE_TYPES.EXIT]: 'Найти выход',
+  [window.STAGE_TYPES.DEFENSE]: 'Защита базы',
   [window.STAGE_TYPES.BASE]: 'Уничтожить базу',
   [window.STAGE_TYPES.BOSS]: 'Убить босса'
 };
@@ -36,7 +36,7 @@ const STAGE_NAMES = {
 const STAGE_ICONS = {
   [window.STAGE_TYPES.SURVIVAL]: '🌍',
   [window.STAGE_TYPES.MAZE]: '🏭',
-  [window.STAGE_TYPES.EXIT]: '🏜️',
+  [window.STAGE_TYPES.DEFENSE]: '🏠',
   [window.STAGE_TYPES.BASE]: '🧊',
   [window.STAGE_TYPES.BOSS]: '👑'
 };

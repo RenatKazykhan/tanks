@@ -20,19 +20,8 @@ class Minimap {
         this.minimapCtx.strokeStyle = '#444';
         this.minimapCtx.strokeRect(0, 0, this.minimapCanvas.width, this.minimapCanvas.height);
 
-        if (currentStage === 2) {
-            // Отрисовка выхода (если активен)
-            if (enemies.length === 0 && stageManager.handler.zones.every(zone => zone.activated === true)) {
-                this.minimapCtx.fillStyle = '#00ff00';
-                this.minimapCtx.fillRect(
-                    stageManager.handler.x * this.minimapScale.x,
-                    stageManager.handler.y * this.minimapScale.y,
-                    stageManager.handler.width * this.minimapScale.x,
-                    stageManager.handler.height * this.minimapScale.y
-                );
-            }
-
-            // Отрисовка зон активации
+        // Отрисовка зон активации
+        if (stageManager.handler.zones) {
             this.minimapCtx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
             this.minimapCtx.lineWidth = 1;
             stageManager.handler.zones.forEach(zone => {
@@ -50,14 +39,24 @@ class Minimap {
             });
         }
 
-        if (currentStage === 3) {
-            // Отрисовка выхода (если заколка найдена)
-            this.minimapCtx.fillStyle = '#00ff00';
+
+        if (stageManager.checkVictory() && stageManager.getCurrentType() == 'maze') {
+            this.minimapCtx.fillStyle = '#eaf3eaff';
             this.minimapCtx.fillRect(
                 stageManager.handler.exit.x * this.minimapScale.x,
                 stageManager.handler.exit.y * this.minimapScale.y,
                 stageManager.handler.exit.width * this.minimapScale.x,
                 stageManager.handler.exit.height * this.minimapScale.y
+            );
+        }
+
+        if (stageManager.getCurrentType() == 'defense') {
+            this.minimapCtx.fillStyle = '#00e5ff';
+            this.minimapCtx.fillRect(
+                stageManager.handler.base.x * this.minimapScale.x,
+                stageManager.handler.base.y * this.minimapScale.y,
+                stageManager.handler.base.width * this.minimapScale.x,
+                stageManager.handler.base.height * this.minimapScale.y
             );
         }
 

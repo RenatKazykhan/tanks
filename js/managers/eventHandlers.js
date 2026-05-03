@@ -4,6 +4,7 @@
 function initEventHandlers() {
     // Сохранение прогресса в localStorage
     window.addEventListener('beforeunload', () => {
+        points += Math.floor(score / 20);
         localStorage.setItem('tankGamePoints', points);
         localStorage.setItem('tankGameRecord', recordScore);
         localStorage.setItem('tankGameCosts', JSON.stringify(upgradeCosts));
@@ -53,8 +54,8 @@ function initEventHandlers() {
                 e.preventDefault();
                 return;
             }
-            if (e.key.toLowerCase() === 'x' && player.droneSkill) {
-                player.droneSkill.upgrade();
+            if (e.key.toLowerCase() === 'x') {
+                //player.droneSkill.upgrade();
                 e.preventDefault();
                 return;
             }

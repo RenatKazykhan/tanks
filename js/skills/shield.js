@@ -103,12 +103,17 @@ class Shield {
     // ← ДОБАВЛЕНО: вызывается когда игрок получает урон по щиту
     onShieldDamaged(damageAmount) {
         this.lastDamageTime = Date.now();
-        this.shieldAmount = this.owner.shield; // синхронизируем
+        this.shieldAmount = this.owner.shield;
 
         if (this.shieldAmount <= 0) {
             this.shieldBroken = true;
             this.shieldAmount = 0;
             this.owner.shield = 0;
+            // Гибридный хук: щит сломан
+            if (this.owner.hybridSkills) this.owner.hybridSkills.onShieldBroken();
+        } else {
+            // Гибридный хук: щит получил урон
+            if (this.owner.hybridSkills) this.owner.hybridSkills.onShieldDamaged();
         }
     }
 

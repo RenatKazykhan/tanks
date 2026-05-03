@@ -11,9 +11,9 @@ class VisualEffects {
     }
 
     // Эффект для выхода
-    createExitEffect() {
-        const exitX = stage2Exit.x + stage2Exit.width / 2;
-        const exitY = stage2Exit.y + stage2Exit.height / 2;
+    createExitEffect(exit) {
+        const exitX = exit.x + exit.width / 2;
+        const exitY = exit.y + exit.height / 2;
 
         // Создаем частицы для выхода
         for (let i = 0; i < 30; i++) {

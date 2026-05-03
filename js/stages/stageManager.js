@@ -31,10 +31,10 @@ class StageManager {
   registerHandlers() {
     // Используем глобальные классы, которые должны быть определены
     this.stageHandlers.set('survival', window.SurvivalStage);
-    this.stageHandlers.set('maze', window.MazeStage);
-    this.stageHandlers.set('exit', window.ExitStage);
-    this.stageHandlers.set('base', window.BaseStage);
-    this.stageHandlers.set('boss', window.BossStage);
+    this.stageHandlers.set('maze',     window.MazeStage);
+    this.stageHandlers.set('defense',  window.DefenseStage);
+    this.stageHandlers.set('base',     window.BaseStage);
+    this.stageHandlers.set('boss',     window.BossStage);
   }
   
   /**
@@ -131,6 +131,21 @@ class StageManager {
    */
   draw(ctx) {
     if (this.handler && this.handler.draw) {
+      this.handler.draw(ctx);
+    }
+  }
+
+  /**
+   * HUD этапа в экранных координатах.
+   * Для DefenseStage рисует таймер и статус, но не базу (она в мировых координатах).
+   * Для остальных этапов — полный draw.
+   * @param {CanvasRenderingContext2D} ctx 
+   */
+  drawHUD(ctx) {
+    if (!this.handler) return;
+    if (this.handler.drawHUD) {
+      this.handler.drawHUD(ctx);
+    } else if (this.handler.draw) {
       this.handler.draw(ctx);
     }
   }

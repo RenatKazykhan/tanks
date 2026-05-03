@@ -9,9 +9,7 @@ class UpdateUIManager {
         if (pointsEl) {
             pointsEl.textContent = points;
         }
-        // Также обновляем бэйджи модулей
         modules.updateAllModuleBadges();
-        // Обновляем панель текущего модуля
         if (modules.selectedModuleName) {
             modules.updateModulePanel(modules.selectedModuleName);
         }
@@ -27,9 +25,7 @@ class UpdateUIManager {
         }
     }
 
-    // Функция для обновления отображения характеристик в главном меню (устаревшая, для совместимости)
     updateStatsDisplayMainMenu() {
-        // Новая система использует модули, так что обновим бэйджи
         if (typeof updateAllModuleBadges === 'function') {
             updateAllModuleBadges();
         }
@@ -71,7 +67,7 @@ class UpdateUIManager {
             {
                 icon: '💥', name: 'Взрыв', key: 'Q',
                 level: player.blastSkill.level, maxLevel: 5,
-                desc: 'Заряжаемый взрыв по области вокруг игрока',
+                desc: 'При активации создает взрыв по области вокруг игрока',
                 stats: [
                     ['Урон', prog([100, 150, 200, 250, 300], player.blastSkill.level)],
                     ['Радиус', prog([150, 200, 250, 300, 400], player.blastSkill.level)],
@@ -151,17 +147,6 @@ class UpdateUIManager {
                 ]
             },
             {
-                icon: '🛸', name: 'Дрон-камикадзе', key: 'X',
-                level: player.droneSkill.level, maxLevel: 5,
-                desc: 'Пассивный дрон + активный залп дронов',
-                stats: [
-                    ['Урон', prog([50, 65, 80, 100, 130], player.droneSkill.level)],
-                    ['Радиус взрыва', prog([60, 70, 80, 90, 110], player.droneSkill.level)],
-                    ['Дроны (акт.)', prog([1, 2, 3, 4, 5], player.droneSkill.level)],
-                    ['Перезарядка', prog([15, 14, 13, 11, 9], player.droneSkill.level, 'с')],
-                ]
-            },
-            {
                 icon: '⚡', name: 'Ускорение', key: 'Z',
                 level: player.speedSkill.level, maxLevel: 5,
                 desc: 'Пассивное уклонение + активное ускорение и уклонение',
@@ -175,8 +160,8 @@ class UpdateUIManager {
         ];
 
         skills.forEach(s => {
-            if(player.equippedWeapon == 'gun' && s.name == 'Лазерная вечеринка') return;
-            if(player.equippedWeapon == 'laser' && s.name == 'Двойной выстрел') return;
+            if (player.equippedWeapon == 'gun' && s.name == 'Лазерная вечеринка') return;
+            if (player.equippedWeapon == 'laser' && s.name == 'Двойной выстрел') return;
             const card = document.createElement('div');
             card.className = 'skill-icon-card' + (s.level > 0 ? ' skill-active' : ' skill-locked');
 
@@ -201,5 +186,46 @@ class UpdateUIManager {
 
             grid.appendChild(card);
         });
+
+        // === Гибридные способности ===
+        // Удаляем предыдущий раздел гибридов (если был)
+        const oldHybrid = grid.parentElement.querySelector('.hybrid-section');
+        if (oldHybrid) oldHybrid.remove();
+
+        if (typeof HYBRID_DEFS !== 'undefined' && player.hybridSkills) {
+            const hybridSection = document.createElement('div');
+            hybridSection.className = 'stats-section hybrid-section';
+            hybridSection.innerHTML = '<h3>🔗 Гибридные способности</h3>';
+
+            const hybridGrid = document.createElement('div');
+            hybridGrid.className = 'skills-grid';
+
+            const sRef = {
+                blast: player.blastSkill, shield: player.shieldSkill,
+                chainLightning: player.chainLightningSkill, teleport: player.teleportSkill,
+                regeneration: player.regenerationSkill, doubleShoot: player.doubleShootSkill,
+                speed: player.speedSkill, lifesteal: player.lifestealSkill
+            };
+
+            HYBRID_DEFS.forEach(h => {
+                const ok = h.requires.every(r => sRef[r] && sRef[r].level >= 5);
+                const hcard = document.createElement('div');
+                hcard.className = 'skill-icon-card' + (ok ? ' skill-active' : ' skill-locked');
+                const reqLabel = ok ? '✅ АКТИВНО' : ('🔒 ' + h.requires.join(' + ') + ' ур.5');
+                hcard.innerHTML = `
+                    <span class="skill-icon-emoji">${h.icon}</span>
+                    ${ok ? '<span class="skill-lvl">✓</span>' : ''}
+                    <div class="skill-tooltip">
+                        <div class="tt-name">${h.name}</div>
+                        <span class="tt-key">${reqLabel}</span>
+                        <div class="tt-desc">${h.desc}</div>
+                    </div>
+                `;
+                hybridGrid.appendChild(hcard);
+            });
+
+            hybridSection.appendChild(hybridGrid);
+            grid.parentElement.appendChild(hybridSection);
+        }
     }
 }

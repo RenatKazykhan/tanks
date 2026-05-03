@@ -89,6 +89,10 @@ class ChainLightning {
         for (let i = 0; i < this.jumps && currentTarget; i++) {
             // Deal damage
             currentTarget.takeDamageBySkill(this.damage);
+            // Гибридный хук молнии
+            if (typeof player !== 'undefined' && player.hybridSkills) {
+                player.hybridSkills.onLightningDamage(this.damage);
+            }
             if (!currentTarget.active) {
                 enemyDead(currentTarget.x, currentTarget.y);
             }

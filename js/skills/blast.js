@@ -76,34 +76,20 @@ class Blast {
         return false;
     }
 
-    startCharging() {
-        if (!this.hasEnergyBlast) return;
-        if (Date.now() - this.lastUseTime < this.cooldown) return;
+    /** Мгновенный взрыв при нажатии Q — без накопления энергии */
+    activate() {
+        if (!this.hasEnergyBlast) return null;
+        if (Date.now() - this.lastUseTime < this.cooldown) return null;
 
-        this.isCharging = true;
-        this.chargeTime = 0;
-    }
-
-    releaseBlast() {
-        if (!this.isCharging) return null;
-
-        // Минимальная зарядка для активации
-        const chargePercent = this.maxChargeTime > 0 ? Math.min(1, this.chargeTime / this.maxChargeTime) : 1;
-        if (chargePercent < 0.3 && this.maxChargeTime > 0) {
-            this.isCharging = false;
-            this.chargeTime = 0;
-            return null;
-        }
-
-        // Активируем взрыв
+        // Активируем взрыв на полную мощность
         this.isActive = true;
-        this.animationTime = 500; // 500мс анимация
+        this.animationTime = 500;
         this.shockwaveRadius = 0;
         this.lastUseTime = Date.now();
         this.isCharging = false;
 
-        // Создаем визуальные эффекты
-        this.createEffects(chargePercent);
+        // Создаём визуальные эффекты на полной мощности
+        this.createEffects(1);
 
         if (typeof soundManager !== 'undefined' && soundManager.playEnergyBlast) {
             soundManager.playEnergyBlast();
@@ -112,15 +98,18 @@ class Blast {
             cameraShake.trigger(12);
         }
 
-        // Возвращаем данные для обработки урона врагам
         return {
             x: this.owner.x,
             y: this.owner.y,
-            radius: this.radius * chargePercent,
-            damage: this.damage * chargePercent,
-            force: this.force * chargePercent
+            radius: this.radius,
+            damage: this.damage,
+            force: this.force
         };
     }
+
+    // Оставлены для обратной совместимости (не используются)
+    startCharging() {}
+    releaseBlast() { return null; }
 
     createEffects(chargePercent) {
         // Создаем молнии
@@ -175,23 +164,24 @@ class Blast {
     }
 
     handleEnergyBlast(blastData) {
-        // Проверяем попадание по всем врагам
+        if (!blastData) return;
+        let totalDamage = 0, hitCount = 0;
         enemies.forEach(enemy => {
             const dx = enemy.x - blastData.x;
             const dy = enemy.y - blastData.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance <= blastData.radius) {
-                // Наносим урон
                 enemy.takeDamageBySkill(blastData.damage);
                 statManager.damageByExplode += blastData.damage;
+                totalDamage += blastData.damage;
+                hitCount++;
 
                 if (!enemy.active) {
-                    enemyDead(enemy.x, enemy.y); // создает взрывы
+                    enemyDead(enemy.x, enemy.y);
                 }
             }
 
-            // Уничтожаем вражеские пули в радиусе взрыва
             enemy.bullets.forEach(bullet => {
                 const dx = bullet.x - blastData.x;
                 const dy = bullet.y - blastData.y;
@@ -199,6 +189,10 @@ class Blast {
                 return distance > blastData.radius;
             });
         });
+        // Гибридный хук
+        if (typeof player !== 'undefined' && player.hybridSkills) {
+            player.hybridSkills.onBlast(totalDamage, hitCount);
+        }
     }
 
     update(deltaTime) {

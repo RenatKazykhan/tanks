@@ -41,11 +41,11 @@ class PlayerTank {
         this.shieldSkill = new Shield(this);
         this.lifestealSkill = new Lifesteal(this);
         this.doubleShootSkill = new DoubleShoot(this);
-        this.droneSkill = new DroneSkill(this);
         this.teleportSkill = new Teleport(this);
         this.laser = new LaserExplosion(this);
         this.blastSkill = new Blast(this);
         this.speedSkill = new SpeedSkill(this);
+        this.hybridSkills = new HybridSkillManager(this);
 
         this.isMoveForward = false;
         this.isMoveBack = false;
@@ -98,8 +98,16 @@ class PlayerTank {
         this.chainLightningSkill.updateChainLightning(this.x, this.y);
         this.chainLightningSkill.updateVisualEffects(deltaTime);
 
+        // Обновляем гибридные навыки
+        this.hybridSkills.update(deltaTime);
+
         if (keys['e'] || keys['E']) {
+            const _prevTP = this.teleportSkill.lastTeleportTime;
+            const _oldX = this.x, _oldY = this.y;
             this.teleportSkill.activate(mouseX, mouseY);
+            if (this.teleportSkill.lastTeleportTime !== _prevTP) {
+                this.hybridSkills.onTeleport(_oldX, _oldY);
+            }
         }
 
         // В обработчике нажатия клавиш
@@ -107,17 +115,14 @@ class PlayerTank {
             this.chainLightningSkill.activate(enemies, mouseX, mouseY); // enemies - массив врагов
         }
 
-        // Энергетический взрыв
+        // Энергетический взрыв — мгновенный при нажатии
         if (keys['q'] || keys['Q']) {
             if (!this.blastKeyPressed) {
-                this.blastSkill.startCharging();
+                const blastData = this.blastSkill.activate();
+                if (blastData) this.blastSkill.handleEnergyBlast(blastData);
                 this.blastKeyPressed = true;
             }
         } else {
-            if (this.blastKeyPressed && this.blastSkill.isCharging) {
-                const blastData = this.blastSkill.releaseBlast();
-                this.blastSkill.handleEnergyBlast(blastData);
-            }
             this.blastKeyPressed = false;
         }
 
@@ -141,14 +146,14 @@ class PlayerTank {
             if (this.equippedWeapon == 'gun') {
                 this.doubleShootSkill.activate();
             }
-            else if(this.equippedWeapon == 'laser') {
+            else if (this.equippedWeapon == 'laser') {
                 this.laser.activate(enemies, mouseX, mouseY);
             }
         }
 
         // Активация залпа дронов
         if (keys['x'] || keys['X']) {
-            this.droneSkill.activate();
+            //this.droneSkill.activate();
         }
 
         // Активация ускорения
@@ -201,8 +206,6 @@ class PlayerTank {
         } else {
             this.turretAngle += Math.sign(angleDiff) * turnStep;
         }
-
-        this.droneSkill.update(enemies, deltaTime);
 
         // Ограничение движения в пределах мира
         this.x = Math.max(player.width / 2, Math.min(WORLD_WIDTH - player.width / 2, player.x));
@@ -286,7 +289,7 @@ class PlayerTank {
         const startX = this.x + dx * 20;
         const startY = this.y + dy * 20;
 
-         // === ЗВУК ЛАЗЕРА С ОГРАНИЧЕНИЕМ ЧАСТОТЫ ===
+        // === ЗВУК ЛАЗЕРА С ОГРАНИЧЕНИЕМ ЧАСТОТЫ ===
         if (!this.lastLaserSound) this.lastLaserSound = 0;
         const now = Date.now();
         if (now - this.lastLaserSound > 100) { // каждые 180мс — новый звук
@@ -417,6 +420,8 @@ class PlayerTank {
     }
 
     draw() {
+        // Рисуем гибридные эффекты
+        this.hybridSkills.draw();
         // Рисуем частицы исцеления
         this.regenerationSkill.drawEffects();
 
@@ -1198,9 +1203,6 @@ class PlayerTank {
 
         // ==================== ПУЛИ ====================
         this.bullets.forEach(bullet => bullet.draw());
-
-        // ==================== ДРОНЫ ====================
-        this.droneSkill.draw();
     }
 
     // Вспомогательный метод для скруглённых прямоугольников
@@ -1250,9 +1252,6 @@ class PlayerTank {
         damageFlash = 1;
 
         if (this.health <= 0) {
-            gameRunning = false;
-            document.getElementById('gameOver').style.display = 'block';
-            document.getElementById('finalScore').textContent = score;
             if (this.onGameOver) {
                 this.onGameOver();
             }
@@ -1406,9 +1405,6 @@ class PlayerTank {
         damageFlash = 1;
 
         if (this.health <= 0) {
-            gameRunning = false;
-            document.getElementById('gameOver').style.display = 'block';
-            document.getElementById('finalScore').textContent = score;
             if (this.onGameOver) {
                 this.onGameOver();
             }
@@ -1716,11 +1712,6 @@ class PlayerTank {
         player.doubleShot = false;
         player.doubleShotChance = 0.25;
 
-        // Дрон-камикадзе
-        player.droneSkill.level = 0;
-        player.droneSkill.hasDrone = false;
-        player.droneSkill.drones = [];
-
         // Ускорение
         player.speedSkill.level = 0;
         player.speedSkill.hasSpeed = false;
@@ -1733,7 +1724,7 @@ class PlayerTank {
         for (let i = 0; i < 8; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 50 + Math.random() * 100;
-            
+
             this.ricochetEffects.push({
                 x: x,
                 y: y,
@@ -1746,7 +1737,7 @@ class PlayerTank {
                 color: '#00ffff'
             });
         }
-        
+
         // Текст "УКЛОНЕНИЕ"
         this.ricochetEffects.push({
             x: x,

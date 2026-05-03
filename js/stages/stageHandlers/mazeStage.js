@@ -10,7 +10,7 @@ window.MazeStage = class MazeStage {
     this.zones = [];
     this.initialized = false;
   }
-  
+
   /**
    * Инициализация этапа.
    * @param {PlayerTank} player 
@@ -20,22 +20,24 @@ window.MazeStage = class MazeStage {
    */
   init(player, walls, enemies, powerUps) {
     console.log('Инициализация этапа лабиринта');
-    
+
     // Очищаем стены
     walls.length = 0;
-    
+
+    // Устанавливаем игрока в начальную позицию
+    player.x = 100;
+    player.y = WORLD_HEIGHT - 100;
+
     // Используем mapManager для создания лабиринта
     const mapKey = mapManager.getMapKey(this.config.id);
     this.zones = [];
     this.exit = mapManager.createMapFromLayout(mapKey, player, walls, powerUps, this.zones);
-    
-    // Устанавливаем игрока в начальную позицию
-    player.x = 100;
-    player.y = WORLD_HEIGHT - 100;
-    
+
+
+
     this.initialized = true;
   }
-  
+
   /**
    * Обновление логики этапа.
    * @param {number} deltaTime 
@@ -45,14 +47,11 @@ window.MazeStage = class MazeStage {
    */
   update(deltaTime, player, enemies, walls) {
     if (!this.initialized) return;
-    
+
     // Проверяем активацию зон
     this.checkZonesActivation(player);
-    
-    // Проверяем достижение выхода
-    this.checkExit(player);
   }
-  
+
   /**
    * Проверка активации зон.
    * @param {PlayerTank} player 
@@ -60,15 +59,15 @@ window.MazeStage = class MazeStage {
   checkZonesActivation(player) {
     this.zones.forEach(zone => {
       if (zone.activated) return;
-      
+
       const dx = player.x - zone.x;
       const dy = player.y - zone.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
+
       if (distance < zone.radius) {
         zone.activated = true;
         console.log(`Зона активирована: ${zone.id}`);
-        
+
         enemies.push(...zone.enemies);
 
         // Визуальный эффект
@@ -78,31 +77,7 @@ window.MazeStage = class MazeStage {
       }
     });
   }
-  
-  /**
-   * Проверка достижения выхода.
-   * @param {PlayerTank} player 
-   */
-  checkExit(player) {
-    const playerRect = {
-      x: player.x - player.width / 2,
-      y: player.y - player.height / 2,
-      width: player.width,
-      height: player.height
-    };
-    
-    if (this.checkRectCollision(playerRect, this.exit)) {
-      // Выход достигнут, но победа только если все зоны активированы
-      const allZonesActivated = this.zones.every(zone => zone.activated);
-      const noEnemies = window.enemies && window.enemies.length === 0;
-      
-      if (allZonesActivated && noEnemies) {
-        // Победа будет обработана в checkVictory
-        console.log('Игрок достиг выхода!');
-      }
-    }
-  }
-  
+
   /**
    * Проверка столкновения прямоугольников.
    * @param {Object} rect1
@@ -111,11 +86,11 @@ window.MazeStage = class MazeStage {
    */
   checkRectCollision(rect1, rect2) {
     return rect1.x < rect2.x + rect2.width &&
-           rect1.x + rect1.width > rect2.x &&
-           rect1.y < rect2.y + rect2.height &&
-           rect1.y + rect1.height > rect2.y;
+      rect1.x + rect1.width > rect2.x &&
+      rect1.y < rect2.y + rect2.height &&
+      rect1.y + rect1.height > rect2.y;
   }
-  
+
   /**
    * Проверка победы на этапе.
    * @param {PlayerTank} player
@@ -124,10 +99,10 @@ window.MazeStage = class MazeStage {
    */
   checkVictory(player, enemies) {
     if (!this.initialized) return false;
-    
+
     // Все зоны активированы, врагов нет, игрок у выхода
     const allZonesActivated = this.zones.every(zone => zone.activated);
-    
+
     if (allZonesActivated) {
       const playerRect = {
         x: player.x - player.width / 2,
@@ -136,14 +111,14 @@ window.MazeStage = class MazeStage {
         height: player.height
       };
 
-      visualEffects.createExitEffect();
+      visualEffects.createExitEffect(this.exit);
 
       return this.checkRectCollision(playerRect, this.exit);
     }
-    
+
     return false;
   }
-  
+
   /**
    * Сброс состояния этапа.
    */
@@ -151,7 +126,7 @@ window.MazeStage = class MazeStage {
     this.zones = [];
     this.initialized = false;
   }
-  
+
   /**
    * Отрисовка специфики этапа (зоны, выход).
    * @param {CanvasRenderingContext2D} ctx
@@ -169,7 +144,7 @@ window.MazeStage = class MazeStage {
     ctx.fillText(`Активированных зон ${activatedCount}/${this.zones.length}`, 25, 40);
     ctx.restore();
   }
-  
+
   /**
    * Получить текст статуса для UI.
    * @returns {string}

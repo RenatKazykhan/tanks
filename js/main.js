@@ -88,6 +88,11 @@ function gameLoop() {
     }
 
     stageManager.update(deltaTime, player, enemies, walls);
+    // Проверка уничтожения базы (этап «Защита базы»)
+    if (stageManager.handler && stageManager.handler.base &&
+        !stageManager.handler.base.active && gameRunning) {
+        gameOver();
+    }
     // Обновление бонусов
     powerUps = powerUps.filter(powerUp => {
         if (Math.sqrt(Math.pow(player.x - powerUp.x, 2) + Math.pow(player.y - powerUp.y, 2)) < 30) {
@@ -108,8 +113,6 @@ function gameLoop() {
                 if (bullet.active && checkCollisionManager.checkCollision(bullet, enemy, bullet.radius, enemy.width / 2)) {
                     enemy.takeDamage(bullet.damage, bullet.x, bullet.y, bullet.vx, bullet.vy);
 
-                    // Проверяем, не рикошет ли (если враг ещё жив и пуля всё ещё активна — значит не рикошетнуло)
-                    // Для Tiger2: если рикошет, здоровье не изменилось, но пулю всё равно деактивируем
                     if (player.lifeSteal > 0) {
                         player.health = Math.min(player.maxHealth, player.health + bullet.damage * player.lifeSteal);
                     }
@@ -117,6 +120,9 @@ function gameLoop() {
                     statManager.damageByBullet += bullet.damage;
                     statManager.hits++;
                     bullet.active = false;
+
+                    // Гибридные навыки — хук попадания
+                    player.hybridSkills.onBulletHit(enemy, bullet.damage);
 
                     if (!enemy.active) {
                         enemyDead(enemy.x, enemy.y);
@@ -127,7 +133,7 @@ function gameLoop() {
             // Проверка столкновений пуль врагов с игроком
             enemy.bullets.forEach(bullet => {
                 if (bullet.active && checkCollisionManager.checkCollision(bullet, player, bullet.radius, player.width / 2)) {
-                    if(bullet.isRocket) player.takeDamageBySkill(bullet.damage);
+                    if (bullet.isRocket) player.takeDamageBySkill(bullet.damage);
                     else player.takeDamage(bullet.damage, bullet.x, bullet.y, bullet.vx, bullet.vy);
                     bullet.active = false;
                     updateUIManager.updateScore();
@@ -270,6 +276,11 @@ function gameLoop() {
     // Атмосферные частицы (снег, песок, угольки)
     biomeManager.drawAmbientParticles();
 
+    // Отрисовка базы игрока (мировые координаты, внутри camera translate)
+    if (stageManager.handler && stageManager.handler.base) {
+        stageManager.handler.base.draw();
+    }
+
     minimap.drawMinimap();
 
     ctx.restore();
@@ -312,7 +323,7 @@ function gameLoop() {
 
     // XP-бар
     xpManager.draw();
-    stageManager.draw(ctx);
+    stageManager.drawHUD(ctx);  // HUD этапа (экранные координаты)
     // Шкала здоровья
     xpManager.drawHealthBar(player);
 
@@ -339,7 +350,7 @@ function enemyDead(x, y) {
 // Добавляем отдельную функцию проверки победы
 function checkVictoryCondition() {
     if (isVictory) return;
-    
+
     // Используем stageManager для проверки победы на любом этапе
     if (stageManager.checkVictory(player, enemies)) {
         showVictory();
@@ -367,16 +378,16 @@ function initStageVariables() {
 function populateStageOptions() {
     const stageSelect = document.getElementById('stageSelect');
     if (!stageSelect) return;
-    
+
     // Если опций меньше 25, добавляем недостающие
     const currentOptions = stageSelect.querySelectorAll('option').length;
     if (currentOptions >= 25) return;
-    
+
     // Удаляем все опции кроме первой (чтобы избежать дублирования)
     while (stageSelect.options.length > 1) {
         stageSelect.remove(1);
     }
-    
+
     // Добавляем опции для этапов 2-25
     for (let i = 2; i <= 25; i++) {
         const option = document.createElement('option');
@@ -386,7 +397,7 @@ function populateStageOptions() {
         option.textContent = `🔒 Этап ${i}`;
         stageSelect.appendChild(option);
     }
-    
+
     console.log(`Добавлены опции для ${24} этапов`);
 }
 
@@ -400,7 +411,7 @@ function selectStage(stageId) {
     }
 
     currentStage = stageId;
-    
+
     // Устанавливаем этап в stageManager
     stageManager.setStage(stageId);
 
@@ -431,7 +442,7 @@ function updateStagesUI() {
         for (let i = 1; i <= 25; i++) {
             const option = stageSelect.querySelector(`option[value="${i}"]`);
             if (!option) continue;
-            
+
             const stageConfig = stageManager.getStageConfig(i);
             if (stageConfig) {
                 if (stageConfig.unlocked) {
@@ -456,7 +467,7 @@ function startGame() {
     gameContainer.style.display = 'block';
     gameInfo.style.display = 'flex';
 
-    modules.loadModules();            
+    modules.loadModules();
     modules.recalcTankStats();
 
     resetGame();
@@ -501,10 +512,10 @@ function resetGame() {
 
     // Сбрасываем состояние этапов через stageManager
     stageManager.reset();
-    
+
     // Инициализируем текущий этап
     stageManager.init(player, walls, enemies, powerUps);
-    
+
     // Устанавливаем биом из конфигурации этапа
     const stageConfig = stageManager.getCurrentConfig();
     if (stageConfig) {
@@ -525,10 +536,13 @@ function resetGame() {
 }
 
 function gameOver() {
-    document.getElementById('pauseBtn').disabled = true;
-    gameRunning = false;
-    points += Math.floor(score / 10);
-    statManager.update();
+    setTimeout(() => {
+        gameRunning = false;
+        document.getElementById('gameOver').style.display = 'block';
+        document.getElementById('finalScore').textContent = score;
+        document.getElementById('pauseBtn').disabled = true;
+        statManager.update();
+    }, 3000);
 }
 
 function backToMenu() {
@@ -537,6 +551,7 @@ function backToMenu() {
     modules.recalcTankStats();
 
     points += Math.floor(score / 20);
+    score = 0;
     localStorage.setItem('tankGamePoints', points);
     gameRunning = false;
     canvas.style.display = 'none';
@@ -589,7 +604,7 @@ function init() {
 
     // Заполняем опции этапов и инициализируем stageManager
     populateStageOptions();
-    
+
     // Инициализируем этапы
     updateStagesUI();
 
@@ -685,7 +700,7 @@ function showVictory() {
 // Запуск инициализации после загрузки страницы
 document.addEventListener('DOMContentLoaded', init);
 
-    // Функция сброса всех характеристик
+// Функция сброса всех характеристик
 function resetAllStats() {
     modules.resetAllStats();
 }

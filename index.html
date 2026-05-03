@@ -77,21 +77,21 @@
             <div class="module-buttons-right">
                 <div class="guns-wrapper">
                     <button class="module-btn" data-module="gun" onclick="selectModuleBtn('gun')">
-                    <img class="module-btn-img" src="assets/icon_gun.png" alt="Орудие">
-                    <span class="module-btn-name">Пушка</span>
-                    <span class="module-btn-level" id="gunLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress">
-                        <div class="module-mini-fill" id="gunMiniFill" style="width: 0%"></div>
-                    </div>
-                </button>
-                <button class="module-btn" data-module="laser" onclick="selectModuleBtn('laser')">
-                    <img class="module-btn-img" src="assets/icon_laser.png" alt="Лазер">
-                    <span class="module-btn-name">Лазер</span>
-                    <span class="module-btn-level" id="laserLevelBadge">Ур. 0</span>
-                    <div class="module-mini-progress">
-                        <div class="module-mini-fill" id="laserMiniFill" style="width: 0%"></div>
-                    </div>
-                </button>
+                        <img class="module-btn-img" src="assets/icon_gun.png" alt="Орудие">
+                        <span class="module-btn-name">Пушка</span>
+                        <span class="module-btn-level" id="gunLevelBadge">Ур. 0</span>
+                        <div class="module-mini-progress">
+                            <div class="module-mini-fill" id="gunMiniFill" style="width: 0%"></div>
+                        </div>
+                    </button>
+                    <button class="module-btn" data-module="laser" onclick="selectModuleBtn('laser')">
+                        <img class="module-btn-img" src="assets/icon_laser.png" alt="Лазер">
+                        <span class="module-btn-name">Лазер</span>
+                        <span class="module-btn-level" id="laserLevelBadge">Ур. 0</span>
+                        <div class="module-mini-progress">
+                            <div class="module-mini-fill" id="laserMiniFill" style="width: 0%"></div>
+                        </div>
+                    </button>
                 </div>
                 <button class="module-btn" data-module="turret" onclick="selectModuleBtn('turret')">
                     <img class="module-btn-img" src="assets/icon_turret.png" alt="Башня">
@@ -307,7 +307,6 @@
     <script src="js/bullets/energyRedBullet.js"></script>
     <script src="js/bullets/rocket.js"></script>
     <script src="js/bullets/iceBullet.js"></script>
-    <script src="js/bullets/kamikazeDrone.js"></script>
     <script src="js/bullets/lightningBullet.js"></script>
     <script src="js/bullets/pantherShell.js"></script>
     <script src="js/entyties/powerUp.js"></script>
@@ -320,9 +319,9 @@
     <script src="js/skills/shield.js"></script>
     <script src="js/skills/lifesteal.js"></script>
     <script src="js/skills/doubleShoot.js"></script>
-    <script src="js/skills/drone.js"></script>
     <script src="js/skills/laser.js"></script>
     <script src="js/skills/speed.js"></script>
+    <script src="js/skills/hybridSkills.js"></script>
 
     <script src="js/playerTank.js"></script>
 
@@ -372,16 +371,17 @@
     <script src="js/managers/fogOfWarManager.js"></script>
     <script src="js/stages/stage4.js"></script>
     <script src="js/stages/stage5.js"></script>
-    
+
     <!-- Новые файлы для автоматизации 25 этапов -->
     <script src="js/stages/stageConfig.js"></script>
     <script src="js/stages/stageHandlers/survivalStage.js"></script>
     <script src="js/stages/stageHandlers/mazeStage.js"></script>
     <script src="js/stages/stageHandlers/exitStage.js"></script>
+    <script src="js/stages/stageHandlers/defenseStage.js"></script>
     <script src="js/stages/stageHandlers/baseStage.js"></script>
     <script src="js/stages/stageHandlers/bossStage.js"></script>
     <script src="js/stages/stageManager.js"></script>
-    
+
     <script src="js/ui/moduleIcons.js"></script>
     <script src="js/main.js"></script>
 </body>
